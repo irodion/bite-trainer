@@ -30,6 +30,7 @@ An MVP spec, ready to hand to a build agent, for an open-source, statically host
 
 - [Can a static PWA hand an Exercise to Claude/ChatGPT via a prefilled deep link?](issues/02-explain-deep-links.md) — only unofficial https prefill URLs exist; ship "copy prompt + open link" with Web Share first on mobile, targets in app config, ~6k char cap; untested live.
 - [Which spaced-repetition algorithm fits a small-item-count code-reading trainer?](issues/01-spaced-repetition-algorithm.md) — in-house 5-box Leitner as a pure fold over the Progress Log (wrong → box 1, overtime → stay, in time → promote); ts-fsrs replay as escape hatch; answer-memorisation is a real risk.
+- [What platform constraints bind an offline-first, install-anywhere PWA in 2026?](issues/03-pwa-platform-constraints.md) — must work in a plain tab; installed apps get isolated storage and Safari tabs can lose the whole Progress Log, so export + merge-import is the safety net; Packs need CORS, a version field and stable ids.
 
 ## Not yet specified
 
@@ -38,6 +39,7 @@ An MVP spec, ready to hand to a build agent, for an open-source, statically host
 - **Pack verification tooling** — per-language author-time checks (e.g. run rustc to confirm a claimed compiler error); whether any of it is in the MVP spec. Waits on the Pack format prototype.
 - **Third-party Pack trust & discovery** — loading Packs from arbitrary URLs: sanitising content, CORS, a Pack directory. Waits on Pack format + tech stack.
 - **Does pick-refactor really fit Choice?** — user has doubts; expected to be answered by the Pack format prototype, may graduate into its own ticket.
+- **Real-device smoke checks** — iOS standalone Blob download / file share, CORS headers of candidate Pack hosts, deep-link behaviour; likely a task ticket once the tech stack and host are chosen.
 - **Accessibility, theming, i18n of UI chrome** — unclear how much the MVP spec must say.
 - **Spec assembly** — the final act: fold all decisions into one MVP spec document.
 
