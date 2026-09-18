@@ -1,0 +1,49 @@
+{
+  "$schema": "../schema/pack.schema.json",
+  "formatVersion": 1,
+  "id": "rust-official",
+  "version": "0.1.0",
+  "title": "Rust",
+  "description": "Read real Rust: ownership, borrowing, iterators, error handling.",
+  "language": {
+    "id": "rust",
+    "name": "Rust",
+    "highlight": "rust",
+    "verifiedWith": "rustc 1.94.1, edition 2021"
+  },
+  "license": "MIT",
+  "attribution": [
+    "Topic list adapted from rustlings (MIT), https://github.com/rust-lang/rustlings"
+  ],
+  "flavors": {
+    "predict-output": {
+      "label": "What does it print?"
+    },
+    "predict-error": {
+      "label": "Why won't it compile?"
+    },
+    "pick-refactor": {
+      "label": "Pick the equivalent rewrite"
+    },
+    "find-the-line": {
+      "label": "Find the rejected line"
+    }
+  },
+  "topics": [
+    {
+      "id": "iterators",
+      "title": "Iterators",
+      "file": "topics/iterators.json"
+    },
+    {
+      "id": "ownership",
+      "title": "Ownership & borrowing",
+      "file": "topics/ownership.json"
+    },
+    {
+      "id": "error-handling",
+      "title": "Error handling",
+      "file": "topics/error-handling.json"
+    }
+  ]
+}

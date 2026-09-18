@@ -1,0 +1,68 @@
+{
+  "$schema": "../../schema/topic.schema.json",
+  "id": "error-handling",
+  "title": "Error handling",
+  "exercises": [
+    {
+      "id": "parse-port-question-mark",
+      "type": "choice",
+      "flavor": "pick-refactor",
+      "timeBudget": 90,
+      "prompt": "Which replacement for the highlighted lines keeps the behaviour identical?",
+      "code": [
+        "fn parse_port(input: &str) -> Result<u16, String> {",
+        "    let trimmed = input.trim();",
+        "    if trimmed.is_empty() {",
+        "        return Err(String::from(\"empty\"));",
+        "    }",
+        "    let port = match trimmed.parse::<u16>() {",
+        "        Ok(p) => p,",
+        "        Err(e) => return Err(e.to_string()),",
+        "    };",
+        "    if port < 1024 {",
+        "        return Err(String::from(\"reserved\"));",
+        "    }",
+        "    Ok(port)",
+        "}"
+      ],
+      "focus": [
+        6,
+        9
+      ],
+      "options": [
+        {
+          "id": "a",
+          "code": [
+            "let port = trimmed.parse::<u16>()",
+            "    .map_err(|e| e.to_string())?;"
+          ],
+          "correct": true,
+          "rationale": "`map_err` converts `ParseIntError` into `String`, and `?` returns early on `Err` — exactly what the `match` did."
+        },
+        {
+          "id": "b",
+          "code": [
+            "let port = trimmed.parse::<u16>()?;"
+          ],
+          "rationale": "`?` needs `From<ParseIntError> for String`, which does not exist. This fails to compile."
+        },
+        {
+          "id": "c",
+          "code": [
+            "let port = trimmed.parse::<u16>()",
+            "    .unwrap_or_default();"
+          ],
+          "rationale": "Compiles, but bad input now becomes port 0 and is reported as `reserved`."
+        },
+        {
+          "id": "d",
+          "code": [
+            "let port = trimmed.parse::<u16>()",
+            "    .expect(\"invalid port\");"
+          ],
+          "rationale": "Turns a recoverable error into a panic."
+        }
+      ]
+    }
+  ]
+}

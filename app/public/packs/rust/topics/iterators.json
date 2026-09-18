@@ -1,0 +1,53 @@
+{
+  "$schema": "../../schema/topic.schema.json",
+  "id": "iterators",
+  "title": "Iterators",
+  "exercises": [
+    {
+      "id": "filter-sum-shadow",
+      "type": "choice",
+      "flavor": "predict-output",
+      "timeBudget": 45,
+      "prompt": "What does this program print?",
+      "code": [
+        "fn main() {",
+        "    let words = vec![\"apple\", \"fig\", \"banana\", \"kiwi\"];",
+        "",
+        "    let total: usize = words",
+        "        .iter()",
+        "        .filter(|w| w.len() > 3)",
+        "        .map(|w| w.len())",
+        "        .sum();",
+        "",
+        "    let total = total * 2;",
+        "    let label = if total > 30 { \"big\" } else { \"small\" };",
+        "",
+        "    println!(\"{total} {label}\");",
+        "}"
+      ],
+      "options": [
+        {
+          "id": "a",
+          "text": "`30 small`",
+          "correct": true,
+          "rationale": "apple (5) + banana (6) + kiwi (4) = 15, shadowed to 30. The test is strictly `> 30`, so the label is `small`."
+        },
+        {
+          "id": "b",
+          "text": "`30 big`",
+          "rationale": "The sum is right, but `30 > 30` is false."
+        },
+        {
+          "id": "c",
+          "text": "`36 big`",
+          "rationale": "This counts `fig` too. Its length is 3 and the filter keeps only lengths greater than 3."
+        },
+        {
+          "id": "d",
+          "text": "It does not compile: `total` is declared twice",
+          "rationale": "Re-declaring with `let` is shadowing, which is legal."
+        }
+      ]
+    }
+  ]
+}

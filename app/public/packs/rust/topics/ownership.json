@@ -1,0 +1,122 @@
+{
+  "$schema": "../../schema/topic.schema.json",
+  "id": "ownership",
+  "title": "Ownership & borrowing",
+  "primer": {
+    "title": "Who owns it, who is looking at it",
+    "body": [
+      "Every value has exactly one owner. Passing a non-`Copy` value **by value** moves it: the old name stays in scope but may not be read again.",
+      "Borrows come in two kinds: any number of `&T`, or exactly one `&mut T` — never both at once.",
+      "A borrow lasts until its *last use*, not until the end of the block:",
+      "```\nlet first = inv.first();   // shared borrow starts\ninv.add(\"torch\");          // needs &mut: conflict\nprintln!(\"{:?}\", first);   // ...because it is used here\n```",
+      "When reading for these errors: find each call that takes `T` or `&mut T`, then look *below* it for another use of the same name."
+    ]
+  },
+  "exercises": [
+    {
+      "id": "inventory-shared-then-mut",
+      "type": "choice",
+      "flavor": "predict-error",
+      "timeBudget": 75,
+      "prompt": "This does not compile. What does the compiler object to?",
+      "code": [
+        "#[derive(Debug)]",
+        "struct Inventory {",
+        "    items: Vec<String>,",
+        "    capacity: usize,",
+        "}",
+        "",
+        "impl Inventory {",
+        "    fn first(&self) -> Option<&String> {",
+        "        self.items.first()",
+        "    }",
+        "",
+        "    fn add(&mut self, item: &str) -> bool {",
+        "        if self.items.len() >= self.capacity {",
+        "            return false;",
+        "        }",
+        "        self.items.push(item.to_string());",
+        "        true",
+        "    }",
+        "}",
+        "",
+        "fn main() {",
+        "    let mut inv = Inventory { items: vec![], capacity: 3 };",
+        "    inv.add(\"rope\");",
+        "",
+        "    let first = inv.first();",
+        "    inv.add(\"torch\");",
+        "",
+        "    println!(\"first = {:?}, all = {:?}\", first, inv);",
+        "}"
+      ],
+      "options": [
+        {
+          "id": "a",
+          "text": "E0502: `inv` is borrowed mutably on line 26 while `first` still borrows it",
+          "correct": true,
+          "rationale": "`first` holds a shared borrow that lives until the `println!` on line 28. `add` needs `&mut self` in between."
+        },
+        {
+          "id": "b",
+          "text": "E0382: `inv` was moved into `first` on line 25",
+          "rationale": "`first(&self)` only borrows. Nothing is moved."
+        },
+        {
+          "id": "c",
+          "text": "E0499: `inv` is borrowed mutably twice (lines 23 and 26)",
+          "rationale": "The mutable borrow on line 23 ends when that call returns. Sequential `&mut` borrows are fine."
+        },
+        {
+          "id": "d",
+          "text": "E0308: `add` returns `bool` but the result is unused",
+          "rationale": "Ignoring a `bool` is legal; only `#[must_use]` types warn."
+        }
+      ]
+    },
+    {
+      "id": "order-used-after-archive",
+      "type": "line-select",
+      "flavor": "find-the-line",
+      "timeBudget": 75,
+      "prompt": "Tap the line the compiler rejects.",
+      "code": [
+        "use std::collections::HashMap;",
+        "",
+        "#[derive(Debug, Clone)]",
+        "struct Order {",
+        "    id: u32,",
+        "    qty: u32,",
+        "}",
+        "",
+        "fn archive(order: Order, store: &mut HashMap<u32, Order>) {",
+        "    store.insert(order.id, order);",
+        "}",
+        "",
+        "fn total(orders: &[Order]) -> u32 {",
+        "    orders.iter().map(|o| o.qty).sum()",
+        "}",
+        "",
+        "fn main() {",
+        "    let mut store = HashMap::new();",
+        "    let order = Order { id: 7, qty: 80 };",
+        "",
+        "    let pending = vec![order.clone()];",
+        "    println!(\"pending: {}\", total(&pending));",
+        "",
+        "    archive(order, &mut store);",
+        "    println!(\"archived {}\", store.len());",
+        "    println!(\"order {} done\", order.id);",
+        "}"
+      ],
+      "correctLines": [26],
+      "rationale": "Line 26 reads `order` after line 24 moved it into `archive` (E0382). The move itself is legal; the later use is what fails.",
+      "lineRationales": {
+        "24": "This is where `order` is moved — and moving is allowed. The error is reported where the moved value is used again.",
+        "21": "`clone()` makes an independent copy, so `order` is still owned by `main` afterwards.",
+        "10": "`order.id` is a `u32`, which is `Copy`; it is read before `order` itself moves into the map."
+      },
+      "fallbackRationale": "That line compiles. Look for a value that is used after ownership has been given away."
+    }
+  ]
+}
