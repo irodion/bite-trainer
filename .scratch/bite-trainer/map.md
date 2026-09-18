@@ -29,11 +29,12 @@ An MVP spec, ready to hand to a build agent, for an open-source, statically host
 <!-- one line per closed ticket -->
 
 - [Can a static PWA hand an Exercise to Claude/ChatGPT via a prefilled deep link?](issues/02-explain-deep-links.md) — only unofficial https prefill URLs exist; ship "copy prompt + open link" with Web Share first on mobile, targets in app config, ~6k char cap; untested live.
+- [Which spaced-repetition algorithm fits a small-item-count code-reading trainer?](issues/01-spaced-repetition-algorithm.md) — in-house 5-box Leitner as a pure fold over the Progress Log (wrong → box 1, overtime → stay, in time → promote); ts-fsrs replay as escape hatch; answer-memorisation is a real risk.
 
 ## Not yet specified
 
-- **Session composition** — how a Session mixes new Exercises and Review Queue items to land in 10–15 min; what "Session completed" means for the Streak. Waits on the spaced-repetition research and Progress Log design.
-- **Mastery formula** — how Topic Mastery is derived, and how Time Budget overruns weigh in. Waits on spaced-repetition research.
+- **Session composition** — how a Session mixes new Exercises and Review Queue items to land in 10–15 min; what "Session completed" means for the Streak. Waits on the Progress Log design.
+- **Mastery formula** — how Topic Mastery is derived, and how Time Budget overruns weigh in. Leitner box is a candidate input; repeat-correct answers should weigh less. Waits on the Progress Log design.
 - **Pack verification tooling** — per-language author-time checks (e.g. run rustc to confirm a claimed compiler error); whether any of it is in the MVP spec. Waits on the Pack format prototype.
 - **Third-party Pack trust & discovery** — loading Packs from arbitrary URLs: sanitising content, CORS, a Pack directory. Waits on Pack format + tech stack.
 - **Does pick-refactor really fit Choice?** — user has doubts; expected to be answered by the Pack format prototype, may graduate into its own ticket.
