@@ -9,7 +9,7 @@ Surface the facts the spec depends on: iOS/iPadOS Safari PWA install flow and li
 
 ## Answer
 
-Full findings: branch `research/pwa-platform-constraints`, `docs/research/pwa-platform-constraints.md` (commit 81caaac). Sources: MDN, webkit.org, web.dev, Firefox source docs, browser-compat-data 8.1.2.
+Full findings: `docs/research/pwa-platform-constraints.md`. Sources: MDN, webkit.org, web.dev, Firefox source docs, browser-compat-data 8.1.2.
 
 - **Install:** iOS is manual only (Share > Add to Home Screen); `beforeinstallprompt` is Chromium-only. Chrome/Edge desktop install needs a manifest (name, 192/512 icons, `start_url`, `display`), no service worker required. Firefox has no manifest-based install. The app must work fully in a plain tab.
 - **Isolated storage on install:** iOS Home Screen and macOS Safari "Add to Dock" apps get storage separate from the Safari tab — progress made in a tab does not carry over. Spec needs "Import progress" on first run and an "export before installing" hint.

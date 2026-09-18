@@ -9,7 +9,7 @@ Establish the facts for the 'open in Claude / ChatGPT' explanation feature: whic
 
 ## Answer
 
-Desk research only — no link was tested live. Full findings: branch `research/explain-deep-links`, `docs/research/explain-deep-links.md` (commit 4dfc7f2).
+Desk research only — no link was tested live. Full findings: `docs/research/explain-deep-links.md`.
 
 - No assistant officially documents an https URL that prefills a chat. `https://claude.ai/new?q=…` and `https://chatgpt.com/?prompt=…` (or `?q=`) are de-facto conventions; the Claude one reportedly broke around Oct 2025 and works again per 2026 sources. Never assume auto-submit. Official Claude prompt links are `claude://` schemes (desktop, ~14k char truncation); custom schemes fail silently when the app is absent, so only `https://` is safe.
 - Gemini has no prefill URL. Perplexity uses `perplexity.ai/search/?q=`.

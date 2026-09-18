@@ -9,7 +9,7 @@ Compare Leitner boxes, SM-2 and FSRS for our case: a few hundred Exercises per P
 
 ## Answer
 
-Full findings: branch `research/spaced-repetition-algorithm`, `docs/research/spaced-repetition-algorithm.md` (commit 3c5368d). No study covers spaced repetition of code-reading multiple-choice items, so applying the literature here is inference.
+Full findings: `docs/research/spaced-repetition-algorithm.md`. No study covers spaced repetition of code-reading multiple-choice items, so applying the literature here is inference.
 
 **Recommendation: an in-house Leitner variant.** ~5 boxes at roughly 1/2/4/8/16 days. Three-way move: wrong → box 1; correct but over Time Budget → stay; correct in time → promote. Implemented as a pure `schedule(events, now)` fold over the Progress Log with no stored scheduler state (~30 lines of TypeScript, no library). Box number doubles as a learner-visible level usable by Mastery.
 
