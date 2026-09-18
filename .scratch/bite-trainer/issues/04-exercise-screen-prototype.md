@@ -18,4 +18,4 @@ Settled with the user against a three-variant prototype (A one scrolling page, B
 - **Line-Select: tap targets are the line-number gutter, with taller rows (line-height ~2.1) while a line is pickable**; the selected line is then confirmed with Check. Follows from choosing B; not yet verified on a real device.
 - **Time Budget indicator:** small ring in the sheet header, filling to the budget and turning amber on overtime; after answering, "0:52 · 7s over budget" as quiet text. Never blocks.
 
-Assets: prototype source on branch `prototype/exercise-screen` (`prototype/exercise-screen.html`, commit 51b731e); hosted copy https://claude.ai/artifact/XqGUts7ymP2MLVUTARL4kT. Verified only in desktop Chrome at simulated 375 / 768 / 1180 px widths.
+Assets: prototype source on branch `prototype/exercise-screen` (`prototype/exercise-screen.html`, commit b39166d); hosted copy https://claude.ai/artifact/XqGUts7ymP2MLVUTARL4kT. Verified only in desktop Chrome at simulated 375 / 768 / 1180 px widths.

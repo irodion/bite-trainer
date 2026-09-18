@@ -26,4 +26,4 @@ Settled with the user against a drafted Rust Pack (4 Exercises, 1 Primer) and a 
 - **Authoring format:** authors (and drafting LLMs) write the JSON directly; the user had no strong opinion and took the agent's recommendation. The escaping cost (`\"` in code lines) is real but small, editors get autocomplete from the JSON Schema, and a friendlier source format can be layered on later without touching the Pack format.
 - **Tooling shape:** two JSON Schemas (2020-12) cover structure; a separate lint covers what schema cannot (one correct option, declared flavors, line numbers inside the snippet and not blank, column limits, id uniqueness).
 
-Assets: branch `prototype/pack-format` — `prototype/pack-format/{rust,python}/`, `schema/*.schema.json`, `lint.py` (commits bc7328a, 9892542).
+Assets: branch `prototype/pack-format` — `prototype/pack-format/{rust,python}/`, `schema/*.schema.json`, `lint.py` (commits ae4ae40, a1b4be1).
