@@ -1,0 +1,18 @@
+#!/bin/sh
+# Commit gate: format check, lint, typecheck and unit tests for app/.
+# Activated by `pnpm install` in app/ (prepare → git config core.hooksPath .githooks).
+# Skipped when the commit touches nothing under app/ (e.g. map/ticket edits).
+
+if git diff --cached --quiet -- app/; then
+  exit 0
+fi
+
+root=$(git rev-parse --show-toplevel)
+cd "$root/app" || exit 1
+
+echo "pre-commit: pnpm verify (format:check → lint → check → test)"
+if ! pnpm --silent verify; then
+  echo
+  echo "pre-commit: blocked. Fix the above; 'pnpm format' fixes formatting. Then re-stage and commit."
+  exit 1
+fi

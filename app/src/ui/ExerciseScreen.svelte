@@ -45,7 +45,8 @@
 
   async function check() {
     if (!hasAnswer || done) return
-    correct = ex.type === 'choice' ? !!ex.options.find((o) => o.id === choice)?.correct : ex.correctLines.includes(line!)
+    correct =
+      ex.type === 'choice' ? !!ex.options.find((o) => o.id === choice)?.correct : ex.correctLines.includes(line!)
     done = true
     await recordAttempt({
       type: 'attempt',
@@ -102,8 +103,9 @@
 
   {#if ex.type === 'choice'}
     <div class="keys">
-      {#each ex.options as o, i}
-        <button class="kbtn {mark(o.id, o.correct)}" disabled={done} onclick={() => (choice = o.id)}>{letter(i)}</button>
+      {#each ex.options as o, i (o.id)}
+        <button class="kbtn {mark(o.id, o.correct)}" disabled={done} onclick={() => (choice = o.id)}>{letter(i)}</button
+        >
       {/each}
       {#if !done}<button class="btn" disabled={!hasAnswer} onclick={check}>Check</button>{/if}
     </div>
@@ -130,11 +132,13 @@
 
       {#if ex.type === 'choice'}
         <div class="opts">
-          {#each ex.options as o, i}
+          {#each ex.options as o, i (o.id)}
             <button class="opt {mark(o.id, o.correct)}" disabled={done} onclick={() => (choice = o.id)}>
               <span class="key">{letter(i)}</span>
               <span class="body">
-                {#if o.code}<Code lines={o.code} {lang} gutter={false} />{:else if o.text}<span class="txt"><Prose source={o.text} /></span>{/if}
+                {#if o.code}<Code lines={o.code} {lang} gutter={false} />{:else if o.text}<span class="txt"
+                    ><Prose source={o.text} /></span
+                  >{/if}
                 {#if done}<span class="why"><Prose source={o.rationale} /></span>{/if}
               </span>
             </button>
@@ -142,7 +146,10 @@
         </div>
       {:else if done}
         {#if !correct && line}
-          <div class="note no"><b>Line {line}.</b> <Prose source={ex.lineRationales?.[line] ?? ex.fallbackRationale} /></div>
+          <div class="note no">
+            <b>Line {line}.</b>
+            <Prose source={ex.lineRationales?.[line] ?? ex.fallbackRationale} />
+          </div>
         {/if}
         <div class="note ok"><b>Line {ex.correctLines.join(', ')}.</b> <Prose source={ex.rationale} /></div>
       {/if}
@@ -152,7 +159,9 @@
       {#if done}
         <div class="after">
           <span class="verdict" class:ok={correct} class:no={!correct}>{correct ? 'Correct' : 'Not quite'}</span>
-          <span class="time" class:over={overS > 0}>{mmss(elapsedMs)}{overS > 0 ? ` · ${Math.round(overS)}s over budget` : ' · within budget'}</span>
+          <span class="time" class:over={overS > 0}
+            >{mmss(elapsedMs)}{overS > 0 ? ` · ${Math.round(overS)}s over budget` : ' · within budget'}</span
+          >
           <button class="link" onclick={explain}>Explain more in Claude ↗</button>
           <button class="btn" onclick={nextExercise}>{index + 1 === total ? 'Finish' : 'Next'}</button>
         </div>
@@ -179,58 +188,268 @@
 </div>
 
 <style>
-  .screen { flex: 1; min-height: 0; height: 100%; display: flex; flex-direction: column; position: relative; }
-  .screen > :global(.code) { flex: 1; min-height: 0; }
+  .screen {
+    flex: 1;
+    min-height: 0;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+  }
+  .screen > :global(.code) {
+    flex: 1;
+    min-height: 0;
+  }
 
-  .keys { flex: none; display: flex; gap: 6px; padding: 8px 16px; border-top: 1px solid var(--rule); align-items: center; background: var(--ground); }
-  .kbtn { flex: 1; min-height: 44px; border: 1px solid var(--rule); border-radius: 6px; text-align: center; font: 600 14px var(--mono); background: var(--surface); }
-  .pick { flex: 1; font-size: 13px; }
-  .kbtn:disabled { cursor: default; }
-  .kbtn.sel { background: var(--accent); color: var(--surface); border-color: var(--accent); }
-  .kbtn.ok { background: var(--good); color: var(--surface); border-color: var(--good); }
-  .kbtn.no { background: var(--bad); color: var(--surface); border-color: var(--bad); }
+  .keys {
+    flex: none;
+    display: flex;
+    gap: 6px;
+    padding: 8px 16px;
+    border-top: 1px solid var(--rule);
+    align-items: center;
+    background: var(--ground);
+  }
+  .kbtn {
+    flex: 1;
+    min-height: 44px;
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    text-align: center;
+    font: 600 14px var(--mono);
+    background: var(--surface);
+  }
+  .pick {
+    flex: 1;
+    font-size: 13px;
+  }
+  .kbtn:disabled {
+    cursor: default;
+  }
+  .kbtn.sel {
+    background: var(--accent);
+    color: var(--surface);
+    border-color: var(--accent);
+  }
+  .kbtn.ok {
+    background: var(--good);
+    color: var(--surface);
+    border-color: var(--good);
+  }
+  .kbtn.no {
+    background: var(--bad);
+    color: var(--surface);
+    border-color: var(--bad);
+  }
 
-  .sheet { flex: none; max-height: 62%; display: flex; flex-direction: column; background: var(--ground); border-top: 1px solid var(--rule); box-shadow: 0 -8px 24px rgba(10, 20, 40, 0.12); }
-  .grip { display: flex; gap: 10px; align-items: center; padding: 10px 16px; width: 100%; min-height: 48px; }
-  .prompt { flex: 1; font-size: 15px; font-weight: 500; text-wrap: balance; }
-  .sheet.shut .prompt { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .chev { color: var(--muted); font-size: 12px; }
-  .ring { flex: none; width: 22px; height: 22px; border-radius: 50%; background: conic-gradient(var(--accent) calc(var(--p, 0) * 1%), var(--sunk) 0); }
-  .ring.over { background: var(--warn); }
-  .sheet-body { overflow-y: auto; padding: 0 16px 14px; display: flex; flex-direction: column; gap: 10px; }
-  .sheet.shut .sheet-body { display: none; }
+  .sheet {
+    flex: none;
+    max-height: 62%;
+    display: flex;
+    flex-direction: column;
+    background: var(--ground);
+    border-top: 1px solid var(--rule);
+    box-shadow: 0 -8px 24px rgba(10, 20, 40, 0.12);
+  }
+  .grip {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    padding: 10px 16px;
+    width: 100%;
+    min-height: 48px;
+  }
+  .prompt {
+    flex: 1;
+    font-size: 15px;
+    font-weight: 500;
+    text-wrap: balance;
+  }
+  .sheet.shut .prompt {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .chev {
+    color: var(--muted);
+    font-size: 12px;
+  }
+  .ring {
+    flex: none;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: conic-gradient(var(--accent) calc(var(--p, 0) * 1%), var(--sunk) 0);
+  }
+  .ring.over {
+    background: var(--warn);
+  }
+  .sheet-body {
+    overflow-y: auto;
+    padding: 0 16px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .sheet.shut .sheet-body {
+    display: none;
+  }
 
-  .opts { display: flex; flex-direction: column; gap: 8px; }
-  .opt { display: flex; gap: 10px; align-items: flex-start; width: 100%; background: var(--surface); border: 1px solid var(--rule); border-radius: 6px; padding: 10px 12px; min-height: 44px; transition: background-color 0.12s; }
-  .opt:disabled { cursor: default; }
-  .key { flex: none; width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid var(--muted); font: 600 11px/19px var(--mono); text-align: center; color: var(--muted); }
-  .body { flex: 1; min-width: 0; display: block; }
-  .txt { display: block; font: 13px/1.5 var(--mono); }
-  .opt.sel { border-color: var(--accent); background: var(--accent-soft); }
-  .opt.sel .key { border-color: var(--accent); color: var(--accent); }
-  .opt.ok { border-color: var(--good); background: var(--good-soft); }
-  .opt.ok .key { background: var(--good); border-color: var(--good); color: var(--surface); }
-  .opt.no { border-color: var(--bad); background: var(--bad-soft); }
-  .opt.no .key { background: var(--bad); border-color: var(--bad); color: var(--surface); }
-  .why { display: block; font: 14px/1.5 var(--ui); margin-top: 6px; padding-top: 6px; border-top: 1px dashed var(--rule); }
+  .opts {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .opt {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    padding: 10px 12px;
+    min-height: 44px;
+    transition: background-color 0.12s;
+  }
+  .opt:disabled {
+    cursor: default;
+  }
+  .key {
+    flex: none;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: 1.5px solid var(--muted);
+    font: 600 11px/19px var(--mono);
+    text-align: center;
+    color: var(--muted);
+  }
+  .body {
+    flex: 1;
+    min-width: 0;
+    display: block;
+  }
+  .txt {
+    display: block;
+    font: 13px/1.5 var(--mono);
+  }
+  .opt.sel {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+  .opt.sel .key {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  .opt.ok {
+    border-color: var(--good);
+    background: var(--good-soft);
+  }
+  .opt.ok .key {
+    background: var(--good);
+    border-color: var(--good);
+    color: var(--surface);
+  }
+  .opt.no {
+    border-color: var(--bad);
+    background: var(--bad-soft);
+  }
+  .opt.no .key {
+    background: var(--bad);
+    border-color: var(--bad);
+    color: var(--surface);
+  }
+  .why {
+    display: block;
+    font: 14px/1.5 var(--ui);
+    margin-top: 6px;
+    padding-top: 6px;
+    border-top: 1px dashed var(--rule);
+  }
 
-  .verdict { font-weight: 600; }
-  .verdict.ok { color: var(--good); }
-  .verdict.no { color: var(--bad); }
-  .after { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; }
-  .after .btn { margin-left: auto; }
-  .note { font-size: 14px; line-height: 1.5; background: var(--surface); border-left: 3px solid var(--rule); padding: 8px 12px; }
-  .note.ok { border-color: var(--good); }
-  .note.no { border-color: var(--bad); }
-  .note :global(p) { display: inline; }
+  .verdict {
+    font-weight: 600;
+  }
+  .verdict.ok {
+    color: var(--good);
+  }
+  .verdict.no {
+    color: var(--bad);
+  }
+  .after {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 16px;
+    align-items: center;
+  }
+  .after .btn {
+    margin-left: auto;
+  }
+  .note {
+    font-size: 14px;
+    line-height: 1.5;
+    background: var(--surface);
+    border-left: 3px solid var(--rule);
+    padding: 8px 12px;
+  }
+  .note.ok {
+    border-color: var(--good);
+  }
+  .note.no {
+    border-color: var(--bad);
+  }
+  .note :global(p) {
+    display: inline;
+  }
 
-  .scrim { position: absolute; inset: 0; background: rgba(10, 16, 24, 0.5); display: flex; align-items: flex-end; justify-content: center; z-index: 5; }
-  .primer { background: var(--surface); max-width: 640px; width: 100%; max-height: 80%; overflow-y: auto; padding: 18px 16px 22px; border-radius: 12px 12px 0 0; display: flex; flex-direction: column; gap: 10px; }
-  .primer h2 { margin: 0; font-size: 18px; }
-  .toast { position: absolute; left: 16px; right: 16px; bottom: 12px; margin: auto; max-width: 420px; background: var(--ink); color: var(--ground); padding: 10px 14px; border-radius: 6px; font-size: 13px; z-index: 6; }
+  .scrim {
+    position: absolute;
+    inset: 0;
+    background: rgba(10, 16, 24, 0.5);
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    z-index: 5;
+  }
+  .primer {
+    background: var(--surface);
+    max-width: 640px;
+    width: 100%;
+    max-height: 80%;
+    overflow-y: auto;
+    padding: 18px 16px 22px;
+    border-radius: 12px 12px 0 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .primer h2 {
+    margin: 0;
+    font-size: 18px;
+  }
+  .toast {
+    position: absolute;
+    left: 16px;
+    right: 16px;
+    bottom: 12px;
+    margin: auto;
+    max-width: 420px;
+    background: var(--ink);
+    color: var(--ground);
+    padding: 10px 14px;
+    border-radius: 6px;
+    font-size: 13px;
+    z-index: 6;
+  }
 
   @media (min-width: 900px) {
-    .opts { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
-    .sheet { max-height: 50%; }
+    .opts {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    }
+    .sheet {
+      max-height: 50%;
+    }
   }
 </style>

@@ -8,7 +8,10 @@ async function answerCurrentExercise(page: Page) {
   await page.getByRole('button', { name: /^(Next|Finish)$/ }).click()
 }
 
-test('after one online visit, a Learner can reload offline, complete a Session, and keep the progress', async ({ page, context }) => {
+test('after one online visit, a Learner can reload offline, complete a Session, and keep the progress', async ({
+  page,
+  context,
+}) => {
   await page.goto('./')
   await expect(page.getByRole('button', { name: /Start Session/ })).toBeVisible()
   await page.evaluate(() => navigator.serviceWorker.ready)

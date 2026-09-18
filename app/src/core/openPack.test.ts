@@ -36,14 +36,17 @@ test('a Pack opened once can be opened again with the network down', async () =>
 })
 
 test('a Pack with problems is refused and never stored', async () => {
-  const { fetchFn } = host((path, json) => (path === 'topics/iterators.json' ? { ...json, exercises: [{ id: 'x', type: 'essay' }] } : json))
+  const { fetchFn } = host((path, json) =>
+    path === 'topics/iterators.json' ? { ...json, exercises: [{ id: 'x', type: 'essay' }] } : json,
+  )
   const store = memoryStore()
 
   await expect(openPack(SOURCE, { fetchFn, store })).rejects.toThrow(/x: unknown type "essay"/)
   expect(await store.get(SOURCE)).toBeUndefined()
 })
 
-const bumped = (v: string) => (path: string, json: any) => (path === 'pack.json' ? { ...json, version: v, title: `Rust ${v}` } : json)
+const bumped = (v: string) => (path: string, json: any) =>
+  path === 'pack.json' ? { ...json, version: v, title: `Rust ${v}` } : json
 
 test('an updated Pack is stored in the background but only takes effect the next time it is opened', async () => {
   const store = memoryStore()
@@ -64,7 +67,9 @@ test('a broken update never replaces the good Pack already stored', async () => 
   const store = memoryStore()
   await openPack(SOURCE, { fetchFn: host().fetchFn, store })
 
-  const broken = host((path, json) => (path === 'pack.json' ? { ...json, version: '0.3.0' } : { ...json, exercises: 'gone' }))
+  const broken = host((path, json) =>
+    path === 'pack.json' ? { ...json, version: '0.3.0' } : { ...json, exercises: 'gone' },
+  )
   const opened = await openPack(SOURCE, { fetchFn: broken.fetchFn, store })
   expect(await opened.update).toBe('invalid')
 

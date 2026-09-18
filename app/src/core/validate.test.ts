@@ -20,9 +20,13 @@ test('a Choice Exercise with two correct options is a problem naming the Exercis
 
 test('a Line-Select answer outside the snippet is a problem', () => {
   const broken = structuredClone(topics)
-  const ex = broken.flatMap((t: { exercises: { type: string }[] }) => t.exercises).find((e: { type: string }) => e.type === 'line-select')
+  const ex = broken
+    .flatMap((t: { exercises: { type: string }[] }) => t.exercises)
+    .find((e: { type: string }) => e.type === 'line-select')
   ex.correctLines = [ex.code.length + 1]
-  expect(validatePack(manifest, broken)).toEqual([`${ex.id}: correct line ${ex.code.length + 1} is outside the snippet`])
+  expect(validatePack(manifest, broken)).toEqual([
+    `${ex.id}: correct line ${ex.code.length + 1} is outside the snippet`,
+  ])
 })
 
 test('a manifest the app cannot use is a problem, not a crash', () => {
@@ -36,5 +40,8 @@ test('an Exercise without code or a Time Budget is a problem', () => {
   const ex = broken[0].exercises[0]
   delete ex.timeBudget
   ex.code = 'fn main() {}'
-  expect(validatePack(manifest, broken)).toEqual([`${ex.id}: code must be an array of lines`, `${ex.id}: timeBudget must be a positive number`])
+  expect(validatePack(manifest, broken)).toEqual([
+    `${ex.id}: code must be an array of lines`,
+    `${ex.id}: timeBudget must be a positive number`,
+  ])
 })

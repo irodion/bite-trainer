@@ -8,8 +8,10 @@ export function validatePack(manifest: unknown, topics: unknown[]): string[] {
   if (manifest.formatVersion !== 1) return [`pack.json: unsupported formatVersion ${manifest.formatVersion}`]
 
   const problems: string[] = []
-  for (const field of ['id', 'version', 'title']) if (!isText(manifest[field])) problems.push(`pack.json: missing ${field}`)
-  if (!isObj(manifest.language) || !isText(manifest.language.highlight)) problems.push('pack.json: missing language.highlight')
+  for (const field of ['id', 'version', 'title'])
+    if (!isText(manifest[field])) problems.push(`pack.json: missing ${field}`)
+  if (!isObj(manifest.language) || !isText(manifest.language.highlight))
+    problems.push('pack.json: missing language.highlight')
   if (!Array.isArray(manifest.topics)) problems.push('pack.json: missing topics')
 
   topics.forEach((topic, i) => {
@@ -41,7 +43,9 @@ function exerciseProblems(ex: unknown, topicId: string): string[] {
   } else if (ex.type === 'line-select') {
     const correct = Array.isArray(ex.correctLines) ? ex.correctLines : []
     if (correct.length === 0) say('correctLines is empty')
-    for (const l of correct) if (lines !== undefined && (typeof l !== 'number' || l < 1 || l > lines)) say(`correct line ${l} is outside the snippet`)
+    for (const l of correct)
+      if (lines !== undefined && (typeof l !== 'number' || l < 1 || l > lines))
+        say(`correct line ${l} is outside the snippet`)
   } else say(`unknown type ${JSON.stringify(ex.type)}`)
   return out
 }

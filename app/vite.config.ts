@@ -1,9 +1,11 @@
 import { svelte } from '@sveltejs/vite-plugin-svelte'
-import { defineConfig } from 'vite'
+import { defineConfig } from 'vitest/config'
 import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
   base: './',
+  // Unit tests only; e2e/ belongs to Playwright.
+  test: { include: ['src/**/*.test.ts'] },
   plugins: [
     svelte(),
     VitePWA({

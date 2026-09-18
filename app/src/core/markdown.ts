@@ -1,10 +1,7 @@
 // Restricted Markdown → token tree. Never produces HTML (ADR 0001); the UI renders tokens as text nodes.
 
 export type Inline =
-  | { t: 'text'; v: string }
-  | { t: 'code'; v: string }
-  | { t: 'strong'; c: Inline[] }
-  | { t: 'em'; c: Inline[] }
+  { t: 'text'; v: string } | { t: 'code'; v: string } | { t: 'strong'; c: Inline[] } | { t: 'em'; c: Inline[] }
 
 export type Block = { t: 'p'; c: Inline[] } | { t: 'pre'; lines: string[] }
 

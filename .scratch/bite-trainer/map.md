@@ -11,7 +11,7 @@ A working MVP of an open-source, statically hosted PWA where Learners spend 10�
 - Domain: learning app / PWA / content format design. Vocabulary lives in `/CONTEXT.md` — use it; update it via `/domain-modeling` when terms change.
 - Tracker: local markdown, see `docs/agents/issue-tracker.md`.
 - Every grilling ticket: invoke `/grilling` and `/domain-modeling`. Prototype tickets: `/prototype`. Research: `/research` subagent.
-- **Build-first (overrides wayfinder's plan-don't-do):** the app lives in `app/` (`pnpm dev`, `pnpm check`, `pnpm vitest run`). Resolve a ticket by building the smallest working version and showing it to the user, not by grilling. Earlier ticket answers are starting defaults, not contracts — change them when the code disagrees, and note it in the ticket.
+- **Build-first (overrides wayfinder's plan-don't-do):** the app lives in `app/` (`pnpm dev`; `pnpm verify` = format check + lint + typecheck + unit tests, enforced by the `.githooks/pre-commit` gate; `pnpm e2e` for the offline Playwright tests; `pnpm format` to fix style). Resolve a ticket by building the smallest working version and showing it to the user, not by grilling. Earlier ticket answers are starting defaults, not contracts — change them when the code disagrees, and note it in the ticket.
 - **Altitude:** decide only what the spec must fix — behaviour a Learner or Pack author can observe, and choices that are hard to reverse. Field names, thresholds, API picks and storage layout are agent-chosen defaults: record them as revisable, don't put them to the user. Keep grilling to one short round where possible.
 - Settled while charting (no ticket; treat as fixed):
   - Learner already programs (other language, or already Rust). No beginners.

@@ -35,6 +35,7 @@ export async function boot() {
 }
 
 export async function record(e: NewEvent) {
+  // eslint-disable-next-line svelte/prefer-svelte-reactivity -- a timestamp, never reactive state
   const now = new Date()
   const full = {
     ...e,
