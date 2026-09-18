@@ -11,6 +11,7 @@ An MVP spec, ready to hand to a build agent, for an open-source, statically host
 - Domain: learning app / PWA / content format design. Vocabulary lives in `/CONTEXT.md` — use it; update it via `/domain-modeling` when terms change.
 - Tracker: local markdown, see `docs/agents/issue-tracker.md`.
 - Every grilling ticket: invoke `/grilling` and `/domain-modeling`. Prototype tickets: `/prototype`. Research: `/research` subagent.
+- **Altitude:** decide only what the spec must fix — behaviour a Learner or Pack author can observe, and choices that are hard to reverse. Field names, thresholds, API picks and storage layout are agent-chosen defaults: record them as revisable, don't put them to the user. Keep grilling to one short round where possible.
 - Settled while charting (no ticket; treat as fixed):
   - Learner already programs (other language, or already Rust). No beginners.
   - Packs are static JSON, loaded at runtime from any URL; official Rust Pack hosted next to the app. Authors write JSON directly (no markdown compile step assumed).
@@ -33,14 +34,13 @@ An MVP spec, ready to hand to a build agent, for an open-source, statically host
 - [What platform constraints bind an offline-first, install-anywhere PWA in 2026?](issues/03-pwa-platform-constraints.md) — must work in a plain tab; installed apps get isolated storage and Safari tabs can lose the whole Progress Log, so export + merge-import is the safety net; Packs need CORS, a version field and stable ids.
 - [What does an Exercise screen look like at phone width, and what snippet limits follow?](issues/04-exercise-screen-prototype.md) — code pinned full-screen with answers in a bottom sheet plus pinned A–D keys; select then Check; horizontal scroll at 13px, never wrap; snippets capped at 30 lines × 60 columns; Line-Select taps the gutter with taller rows.
 - [What is the JSON shape of a Pack, Topic, Primer and Exercise?](issues/05-pack-format-prototype.md) — manifest + per-Topic JSON files; code as arrays of lines, prose as restricted Markdown; Choice options are text or code, Line-Select takes several correct lines; Flavors are an open per-Pack set on both Exercise Types; pick-refactor fits Choice; authors write JSON directly.
+- [What tech stack does the spec prescribe?](issues/06-tech-stack.md) — Svelte 5 + plain Vite + strict TS with a framework-free `core/`; runtime Shiki (JS engine, lazy grammars) rendered from tokens; `idb`; vite-plugin-pwa injectManifest with the page validating and caching Packs; one repo; Vitest + Playwright (offline checks Chromium-only); Cloudflare, host-agnostic build. Pack content is never rendered as HTML ([ADR 0001](../../docs/adr/0001-pack-content-is-never-rendered-as-html.md)).
+- [How are Packs and Exercises identified and versioned so progress survives Pack updates?](issues/07-pack-identity-and-versioning.md) — a Pack is its declared reverse-domain `id`, the URL is only its Pack Source ([ADR 0002](../../docs/adr/0002-pack-identity-is-the-declared-id.md)); progress keys on `(packId, exerciseId)` with Pack-unique ids; same id = same Exercise, orphaned events are ignored not deleted; `version` is an opaque equality-only string; stale-while-revalidate with atomic whole-Pack updates, never mid-Session; the official Pack takes the same path as any other.
+- [What events make up the Progress Log, and how do export/import work?](issues/08-progress-log-schema.md) — three event types (`attempt` with the verdict stored as judged, `session-completed` for Streak, `reset` for per-Pack erase); unique event + Instance ids so import is a set union; export is the whole log plus installed Packs; unknown event types survive round-trips; all derived state is a pure fold. Field-level details are revisable defaults.
 
 ## Not yet specified
 
-- **Session composition** — how a Session mixes new Exercises and Review Queue items to land in 10–15 min; what "Session completed" means for the Streak. Waits on the Progress Log design.
-- **Mastery formula** — how Topic Mastery is derived, and how Time Budget overruns weigh in. Leitner box is a candidate input; repeat-correct answers should weigh less. Waits on the Progress Log design.
-- **Third-party Pack trust & discovery** — loading Packs from arbitrary URLs: sanitising content (Pack prose is restricted Markdown, so the renderer must refuse everything else), CORS, a Pack directory. Waits on the tech stack.
-- **Real-device smoke checks** — iOS standalone Blob download / file share, CORS headers of candidate Pack hosts, deep-link behaviour, Line-Select gutter tap accuracy and 13px legibility on a real phone; likely a task ticket once the tech stack and host are chosen.
-- **Accessibility, theming, i18n of UI chrome** — unclear how much the MVP spec must say.
+- **Accessibility and i18n of UI chrome** — unclear how much the MVP spec must say (keyboard/screen-reader use of the code pane and Line-Select, UI strings). Theming is settled: CSS tokens + `prefers-color-scheme`.
 - **Spec assembly** — the final act: fold all decisions into one MVP spec document.
 
 ## Out of scope
