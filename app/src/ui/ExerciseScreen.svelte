@@ -2,7 +2,7 @@
   import type { SessionItem } from '../core/session'
   import { shuffled } from '../core/shuffle'
   import type { PackManifest } from '../core/types'
-  import { nextExercise, recordAttempt } from '../state.svelte'
+  import { leaveSession, nextExercise, recordAttempt } from '../state.svelte'
   import Code from './Code.svelte'
   import Prose from './Prose.svelte'
 
@@ -12,8 +12,9 @@
     sessionId: string
     index: number
     total: number
+    last: boolean
   }
-  let { item, manifest, sessionId, index, total }: Props = $props()
+  let { item, manifest, sessionId, index, total, last }: Props = $props()
   const ex = $derived(item.exercise)
   const lang = $derived(manifest.language.highlight)
   // Options are presented in a fresh random order every time, so position never gives the answer away.
@@ -121,11 +122,19 @@
   {/if}
 
   <div class="sheet" class:shut={!open}>
-    <button class="grip" onclick={() => (sheet = !sheet)} aria-expanded={open}>
-      <span class="ring" class:over={overS > 0} style="--p:{pct}"></span>
-      <span class="prompt">{ex.prompt}</span>
-      <span class="chev">{open ? '▼' : '▲ answers'}</span>
-    </button>
+    <div class="griprow">
+      <button class="grip" onclick={() => (sheet = !sheet)} aria-expanded={open}>
+        <span class="ring" class:over={overS > 0} style="--p:{pct}"></span>
+        <span class="prompt">{ex.prompt}</span>
+        <span class="chev">{open ? '▼' : '▲ answers'}</span>
+      </button>
+      <button
+        class="leave"
+        aria-label="Leave Session"
+        title="Leave Session — your answers are kept"
+        onclick={leaveSession}>✕</button
+      >
+    </div>
     <div class="sheet-body">
       <div class="meta">
         <b>{item.topic.title}</b>
@@ -167,7 +176,7 @@
             >{mmss(elapsedMs)}{overS > 0 ? ` · ${Math.round(overS)}s over budget` : ' · within budget'}</span
           >
           <button class="link" onclick={explain}>Explain more in Claude ↗</button>
-          <button class="btn" onclick={nextExercise}>{index + 1 === total ? 'Finish' : 'Next'}</button>
+          <button class="btn" onclick={nextExercise}>{last ? 'Finish' : 'Next'}</button>
         </div>
       {/if}
 
@@ -255,7 +264,21 @@
     border-top: 1px solid var(--rule);
     box-shadow: 0 -8px 24px rgba(10, 20, 40, 0.12);
   }
+  .griprow {
+    display: flex;
+    align-items: center;
+  }
+  .leave {
+    flex: none;
+    width: 44px;
+    height: 44px;
+    margin-right: 6px;
+    text-align: center;
+    color: var(--muted);
+  }
   .grip {
+    flex: 1;
+    min-width: 0;
     display: flex;
     gap: 10px;
     align-items: center;

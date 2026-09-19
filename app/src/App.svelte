@@ -1,16 +1,27 @@
 <script lang="ts">
   import { schedule } from './core/schedule'
-  import { composeSession, mastery, streak } from './core/session'
+  import {
+    completedToday,
+    composeSession,
+    mastery,
+    streak,
+    summarize,
+    tzOffsetNow,
+    unfinishedSession,
+  } from './core/session'
   import type { LogEvent } from './core/types'
   import { app, boot, importEvents, record, startSession } from './state.svelte'
   import ExerciseScreen from './ui/ExerciseScreen.svelte'
+  import SessionSummary from './ui/SessionSummary.svelte'
 
   boot()
 
   const events = $derived($state.snapshot(app.events) as LogEvent[])
   const states = $derived(app.pack ? schedule(events, app.pack.manifest.id) : new Map())
-  const upcoming = $derived(app.pack ? composeSession(app.pack, events, Date.now()) : [])
-  const days = $derived(streak(events, Date.now(), new Date().getTimezoneOffset()))
+  const unfinished = $derived(unfinishedSession(events, Date.now(), tzOffsetNow()))
+  const upcoming = $derived(app.pack ? composeSession(app.pack, events, Date.now(), unfinished) : [])
+  const days = $derived(streak(events, Date.now(), tzOffsetNow()))
+  const doneToday = $derived(completedToday(events, Date.now(), tzOffsetNow()))
   let notice = $state('')
 
   function exportLog() {
@@ -51,20 +62,36 @@
       item={s.items[s.index]}
       manifest={app.pack.manifest}
       sessionId={s.id}
-      index={s.index}
-      total={s.items.length}
+      last={s.index === s.items.length - 1}
+      index={s.answeredBefore + s.index}
+      total={s.answeredBefore + s.items.length}
     />
   {/key}
+{:else if app.summaryOf}
+  <SessionSummary
+    summary={summarize(events, app.summaryOf, app.pack)}
+    streak={days}
+    ondone={() => (app.summaryOf = undefined)}
+  />
 {:else}
   <main>
     <h1>{app.pack.manifest.title}</h1>
     <p class="muted">{app.pack.manifest.description}</p>
     <p class="streak">Streak: <b>{days}</b> day{days === 1 ? '' : 's'}</p>
 
-    {#if upcoming.length}
+    {#if doneToday && !unfinished}
+      <p class="done">Done for today. Come back tomorrow — spacing is what makes it stick.</p>
+      {#if upcoming.length}
+        <button class="btn ghost start" onclick={startSession}>Practice more · {upcoming.length} Exercises</button>
+      {/if}
+    {:else if upcoming.length}
       <button class="btn start" onclick={startSession}>
-        Start Session · {upcoming.length} Exercise{upcoming.length === 1 ? '' : 's'}
-        ({upcoming.filter((i) => i.kind === 'review').length} review)
+        {#if unfinished}
+          Continue Session · {upcoming.length} left
+        {:else}
+          Start Session · {upcoming.length} Exercise{upcoming.length === 1 ? '' : 's'}
+          ({upcoming.filter((i) => i.kind === 'review').length} review)
+        {/if}
       </button>
     {:else}
       <p class="done">Nothing due today. Come back tomorrow.</p>

@@ -1,5 +1,5 @@
-import { schedule, type ExerciseState } from './schedule'
-import type { Exercise, LogEvent, Pack, Topic } from './types'
+import { byTime, schedule, type ExerciseState } from './schedule'
+import type { AttemptEvent, Exercise, LogEvent, Pack, Topic } from './types'
 
 export interface SessionItem {
   topic: Topic
@@ -10,8 +10,16 @@ export interface SessionItem {
 /** Seconds of Time Budget a Session aims for (~10–15 min once reading Explanations is included). */
 export const SESSION_BUDGET_S = 8 * 60
 
-/** Due reviews first (oldest due first), then new Exercises in Topic path order, until the budget is filled. */
-export function composeSession(pack: Pack, events: LogEvent[], now: number): SessionItem[] {
+/**
+ * Due reviews first (oldest due first), then new Exercises in Topic path order, until the budget is filled.
+ * When continuing a Session, the budget its answered Exercises already used is not offered again.
+ */
+export function composeSession(
+  pack: Pack,
+  events: LogEvent[],
+  now: number,
+  resume?: { spentBudget: number },
+): SessionItem[] {
   const states = schedule(events, pack.manifest.id)
   const all = pack.topics.flatMap((topic) => topic.exercises.map((exercise) => ({ topic, exercise })))
   const due = all
@@ -21,7 +29,7 @@ export function composeSession(pack: Pack, events: LogEvent[], now: number): Ses
   const fresh = all.filter(({ exercise }) => !states.has(exercise.id)).map((x) => ({ ...x, kind: 'new' as const }))
 
   const items: SessionItem[] = []
-  let budget = 0
+  let budget = resume?.spentBudget ?? 0
   for (const item of [...due, ...fresh]) {
     if (budget >= SESSION_BUDGET_S) break
     items.push(item)
@@ -52,4 +60,68 @@ export function streak(events: LogEvent[], now: number, tzOffsetMin: number): nu
     day--
   }
   return n
+}
+
+export interface UnfinishedSession {
+  id: string
+  answered: number
+  /** Seconds of Time Budget already used up by the answered Exercises. */
+  spentBudget: number
+}
+
+/** The most recent Session, if it was started today (local time) and never completed. Derived from the log alone. */
+export function unfinishedSession(events: LogEvent[], now: number, tzOffsetMin: number): UnfinishedSession | undefined {
+  const erasedAt = (packId: string) =>
+    events.reduce((at, e) => (e.type === 'reset' && e.packId === packId ? Math.max(at, e.at) : at), -Infinity)
+  const attempts = events
+    .filter((e): e is AttemptEvent => e.type === 'attempt' && e.at > erasedAt(e.packId))
+    .sort(byTime)
+
+  const last = attempts.at(-1)
+  if (!last) return undefined
+  if (events.some((e) => e.type === 'session-completed' && e.sessionId === last.sessionId)) return undefined
+  if (localDay(last.at, last.tzOffsetMin) !== localDay(now, tzOffsetMin)) return undefined
+
+  const mine = attempts.filter((e) => e.sessionId === last.sessionId)
+  return { id: last.sessionId, answered: mine.length, spentBudget: mine.reduce((s, e) => s + e.timeBudget, 0) }
+}
+
+export interface SessionSummary {
+  answered: number
+  correct: number
+  /** Answered correctly, but over the Time Budget. */
+  overtime: number
+  elapsedMs: number
+  /** Wrong answers, in the order they happened; an Exercise no longer in the Pack is left out. */
+  missed: { exerciseId: string; topic: string; prompt: string }[]
+}
+
+export function summarize(events: LogEvent[], sessionId: string, pack: Pack): SessionSummary {
+  const attempts = events
+    .filter((e): e is AttemptEvent => e.type === 'attempt' && e.sessionId === sessionId)
+    .sort(byTime)
+  const find = (id: string) => {
+    for (const topic of pack.topics) {
+      const exercise = topic.exercises.find((e) => e.id === id)
+      if (exercise) return { exerciseId: id, topic: topic.title, prompt: exercise.prompt }
+    }
+  }
+  return {
+    answered: attempts.length,
+    correct: attempts.filter((e) => e.correct).length,
+    overtime: attempts.filter((e) => e.correct && e.elapsedMs > e.timeBudget * 1000).length,
+    elapsedMs: attempts.reduce((s, e) => s + e.elapsedMs, 0),
+    missed: attempts.filter((e) => !e.correct).flatMap((e) => find(e.exerciseId) ?? []),
+  }
+}
+
+/** Whether the Learner has already completed a Session on the current local day. */
+export function completedToday(events: LogEvent[], now: number, tzOffsetMin: number): boolean {
+  const today = localDay(now, tzOffsetMin)
+  return events.some((e) => e.type === 'session-completed' && localDay(e.at, e.tzOffsetMin) === today)
+}
+
+/** The local UTC offset right now, in the sign convention of `Date.getTimezoneOffset` (UTC+2 is -120). */
+export function tzOffsetNow(): number {
+  return new Date().getTimezoneOffset()
 }
