@@ -34,3 +34,9 @@ The user accepted the agent's proposals wholesale and flagged that the grilling 
 - Export reminder: quiet dismissible home-screen line after ≥7 days and ≥1 completed Session since last export, or once when `persist()` returns false.
 
 Glossary gained **Instance**; **Progress Log** widened beyond attempts. No ADR: event-sourcing was fixed at charting, the rest is reversible behind `formatVersion`.
+
+## Comments
+
+**2026-09-19 — amended after code review (sec-2 / qa-4).** Two defaults above changed:
+- "Events dated in the future are kept" → on **import**, a file containing an event more than 48 hours ahead of the importing device's clock is refused whole (a well-formed far-future `reset` would hide all progress). Events this device wrote itself are exempt.
+- "Malformed event → file rejected whole" is now implemented and tested (`core/progressLog.ts`); additionally, stored records that do not parse are quarantined on read rather than folded.

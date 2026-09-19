@@ -2,6 +2,7 @@
   import type { SessionItem } from '../core/session'
   import { shuffled } from '../core/shuffle'
   import type { PackManifest } from '../core/types'
+  import { VisibleClock } from '../core/visibleClock'
   import { leaveSession, nextExercise, recordAttempt } from '../state.svelte'
   import Code from './Code.svelte'
   import Prose from './Prose.svelte'
@@ -24,23 +25,35 @@
   let choice: string | undefined = $state()
   let line: number | undefined = $state()
   let done = $state(false)
+  /** The answer is being written. Nothing about the result is shown until it is durably in the Progress Log. */
+  let saving = $state(false)
+  let saveFailed = $state(false)
   let correct = $state(false)
   let sheet = $state(false)
   let primerOpen = $state(false)
   let toast = $state('')
   const open = $derived(sheet || done)
 
-  // Time Budget clock: counts only while the page is visible.
+  // Time Budget clock. Timekeeping is VisibleClock's job (it counts only time it watched pass, so neither a
+  // backgrounded app nor a sleeping device inflates the result); this effect only feeds it observations.
+  // Paused while an answer is being saved or once it is answered; resumes if a save fails.
+  const clock = new VisibleClock(performance.now(), false)
   let elapsedMs = $state(0)
   $effect(() => {
-    if (done) return
-    let last = performance.now()
+    if (done || saving) return
+    const isVisible = () => document.visibilityState === 'visible'
+    const onVisibility = () => (isVisible() ? clock.show(performance.now()) : clock.hide(performance.now()))
+    onVisibility()
+    document.addEventListener('visibilitychange', onVisibility)
     const tick = setInterval(() => {
-      const now = performance.now()
-      if (document.visibilityState === 'visible') elapsedMs += now - last
-      last = now
+      clock.tick(performance.now())
+      elapsedMs = clock.read(performance.now())
     }, 500)
-    return () => clearInterval(tick)
+    return () => {
+      clearInterval(tick)
+      document.removeEventListener('visibilitychange', onVisibility)
+      clock.hide(performance.now())
+    }
   })
   const overS = $derived(elapsedMs / 1000 - ex.timeBudget)
   const pct = $derived(Math.min(100, (elapsedMs / 1000 / ex.timeBudget) * 100))
@@ -49,21 +62,32 @@
   const hasAnswer = $derived(ex.type === 'choice' ? choice !== undefined : line !== undefined)
 
   async function check() {
-    if (!hasAnswer || done) return
-    correct =
+    if (!hasAnswer || done || saving) return
+    const isCorrect =
       ex.type === 'choice' ? !!ex.options.find((o) => o.id === choice)?.correct : ex.correctLines.includes(line!)
-    done = true
-    await recordAttempt({
-      type: 'attempt',
-      sessionId,
-      packId: manifest.id,
-      packVersion: manifest.version,
-      exerciseId: ex.id,
-      answer: ex.type === 'choice' ? { optionId: choice! } : { line: line! },
-      correct,
-      elapsedMs: Math.round(elapsedMs),
-      timeBudget: ex.timeBudget,
-    })
+    // Exact to this moment, not to the last tick; read before `saving` pauses the clock.
+    elapsedMs = clock.read(performance.now())
+    saving = true
+    saveFailed = false
+    try {
+      await recordAttempt({
+        type: 'attempt',
+        sessionId,
+        packId: manifest.id,
+        packVersion: manifest.version,
+        exerciseId: ex.id,
+        answer: ex.type === 'choice' ? { optionId: choice! } : { line: line! },
+        correct: isCorrect,
+        elapsedMs: Math.round(elapsedMs),
+        timeBudget: ex.timeBudget,
+      })
+      correct = isCorrect
+      done = true
+    } catch {
+      saveFailed = true // nothing was stored; Check stays available as the retry
+    } finally {
+      saving = false
+    }
   }
 
   const marks = $derived.by(() => {
@@ -100,7 +124,7 @@
     lines={ex.code}
     {lang}
     focus={ex.focus}
-    pickable={ex.type === 'line-select' && !done}
+    pickable={ex.type === 'line-select' && !done && !saving}
     selected={done ? undefined : line}
     {marks}
     onpick={(n) => (line = n)}
@@ -109,16 +133,23 @@
   {#if ex.type === 'choice'}
     <div class="keys">
       {#each options as o, i (o.id)}
-        <button class="kbtn {mark(o.id, o.correct)}" disabled={done} onclick={() => (choice = o.id)}>{letter(i)}</button
+        <button class="kbtn {mark(o.id, o.correct)}" disabled={done || saving} onclick={() => (choice = o.id)}
+          >{letter(i)}</button
         >
       {/each}
-      {#if !done}<button class="btn" disabled={!hasAnswer} onclick={check}>Check</button>{/if}
+      {#if !done}<button class="btn" disabled={!hasAnswer || saving} onclick={check}
+          >{saving ? 'Saving…' : 'Check'}</button
+        >{/if}
     </div>
   {:else if !done}
     <div class="keys">
       <span class="time pick">{line ? `Line ${line} selected` : 'Tap a line number in the gutter'}</span>
-      <button class="btn" disabled={!line} onclick={check}>Check</button>
+      <button class="btn" disabled={!line || saving} onclick={check}>{saving ? 'Saving…' : 'Check'}</button>
     </div>
+  {/if}
+
+  {#if saveFailed}
+    <p class="savefail" role="alert">Couldn't save your answer. Nothing was recorded — press Check to try again.</p>
   {/if}
 
   <div class="sheet" class:shut={!open}>
@@ -132,6 +163,7 @@
         class="leave"
         aria-label="Leave Session"
         title="Leave Session — your answers are kept"
+        disabled={saving}
         onclick={leaveSession}>✕</button
       >
     </div>
@@ -146,7 +178,7 @@
       {#if ex.type === 'choice'}
         <div class="opts">
           {#each options as o, i (o.id)}
-            <button class="opt {mark(o.id, o.correct)}" disabled={done} onclick={() => (choice = o.id)}>
+            <button class="opt {mark(o.id, o.correct)}" disabled={done || saving} onclick={() => (choice = o.id)}>
               <span class="key">{letter(i)}</span>
               <span class="body">
                 {#if o.code}<Code lines={o.code} {lang} gutter={false} />{:else if o.text}<span class="txt"
@@ -263,6 +295,19 @@
     background: var(--ground);
     border-top: 1px solid var(--rule);
     box-shadow: 0 -8px 24px rgba(10, 20, 40, 0.12);
+  }
+  .savefail {
+    flex: none;
+    margin: 0;
+    padding: 8px 16px;
+    font-size: 13px;
+    color: var(--bad);
+    background: var(--bad-soft);
+    border-top: 1px solid var(--bad);
+  }
+  .leave:disabled {
+    opacity: 0.4;
+    cursor: default;
   }
   .griprow {
     display: flex;

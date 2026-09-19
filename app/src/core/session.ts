@@ -1,5 +1,5 @@
-import { byTime, schedule, type ExerciseState } from './schedule'
-import type { AttemptEvent, Exercise, LogEvent, Pack, Topic } from './types'
+import { byTime, schedule, survivingAttempts, type ExerciseState } from './schedule'
+import type { AttemptEvent, Exercise, LogEvent, NewAttempt, NewEvent, Pack, Topic } from './types'
 
 export interface SessionItem {
   topic: Topic
@@ -71,11 +71,7 @@ export interface UnfinishedSession {
 
 /** The most recent Session, if it was started today (local time) and never completed. Derived from the log alone. */
 export function unfinishedSession(events: LogEvent[], now: number, tzOffsetMin: number): UnfinishedSession | undefined {
-  const erasedAt = (packId: string) =>
-    events.reduce((at, e) => (e.type === 'reset' && e.packId === packId ? Math.max(at, e.at) : at), -Infinity)
-  const attempts = events
-    .filter((e): e is AttemptEvent => e.type === 'attempt' && e.at > erasedAt(e.packId))
-    .sort(byTime)
+  const attempts = survivingAttempts(events)
 
   const last = attempts.at(-1)
   if (!last) return undefined
@@ -124,4 +120,13 @@ export function completedToday(events: LogEvent[], now: number, tzOffsetMin: num
 /** The local UTC offset right now, in the sign convention of `Date.getTimezoneOffset` (UTC+2 is -120). */
 export function tzOffsetNow(): number {
   return new Date().getTimezoneOffset()
+}
+
+/**
+ * Everything one answer adds to the Progress Log. Answering a Session's last Exercise completes it, so both events
+ * are decided here, together, from the position the Learner was at when they answered — and written as one unit.
+ */
+export function answerEvents(attempt: NewAttempt, position: { index: number; total: number }): NewEvent[] {
+  if (position.index < position.total - 1) return [attempt]
+  return [attempt, { type: 'session-completed', sessionId: attempt.sessionId }]
 }

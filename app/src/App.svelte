@@ -1,34 +1,30 @@
 <script lang="ts">
+  import { parseProgressLog, serializeProgressLog } from './core/progressLog'
   import { schedule } from './core/schedule'
-  import {
-    completedToday,
-    composeSession,
-    mastery,
-    streak,
-    summarize,
-    tzOffsetNow,
-    unfinishedSession,
-  } from './core/session'
+  import { completedToday, composeSession, mastery, streak, summarize, unfinishedSession } from './core/session'
   import type { LogEvent } from './core/types'
-  import { app, boot, importEvents, record, startSession } from './state.svelte'
+  import { app, boot, importEvents, keepTimeCurrent, record, startSession } from './state.svelte'
   import ExerciseScreen from './ui/ExerciseScreen.svelte'
   import SessionSummary from './ui/SessionSummary.svelte'
 
   boot()
+  $effect(() => keepTimeCurrent())
 
+  // Time-dependent values derive from app.now / app.tzOffsetMin — never from Date.now(), which is not reactive
+  // and would freeze the screen at the moment the log last changed.
   const events = $derived($state.snapshot(app.events) as LogEvent[])
   const states = $derived(app.pack ? schedule(events, app.pack.manifest.id) : new Map())
-  const unfinished = $derived(unfinishedSession(events, Date.now(), tzOffsetNow()))
-  const upcoming = $derived(app.pack ? composeSession(app.pack, events, Date.now(), unfinished) : [])
-  const days = $derived(streak(events, Date.now(), tzOffsetNow()))
-  const doneToday = $derived(completedToday(events, Date.now(), tzOffsetNow()))
+  const unfinished = $derived(unfinishedSession(events, app.now, app.tzOffsetMin))
+  const upcoming = $derived(app.pack ? composeSession(app.pack, events, app.now, unfinished) : [])
+  const days = $derived(streak(events, app.now, app.tzOffsetMin))
+  const doneToday = $derived(completedToday(events, app.now, app.tzOffsetMin))
   let notice = $state('')
 
   function exportLog() {
-    const blob = new Blob(
-      [JSON.stringify({ format: 'bite-trainer-progress', formatVersion: 1, exportedAt: Date.now(), events }, null, 1)],
-      { type: 'application/json' },
-    )
+    const unknown = $state.snapshot(app.unknownEvents)
+    const blob = new Blob([JSON.stringify(serializeProgressLog(events, unknown, Date.now()), null, 1)], {
+      type: 'application/json',
+    })
     const a = document.createElement('a')
     a.href = URL.createObjectURL(blob)
     a.download = `progress-${new Date().toISOString().slice(0, 10)}.json`
@@ -37,17 +33,25 @@
   }
 
   async function importLog(ev: Event) {
-    const file = (ev.currentTarget as HTMLInputElement).files?.[0]
+    const input = ev.currentTarget as HTMLInputElement
+    const file = input.files?.[0]
     if (!file) return
+    let json: unknown
     try {
-      const data = JSON.parse(await file.text())
-      if (data.format !== 'bite-trainer-progress' || data.formatVersion !== 1 || !Array.isArray(data.events))
-        throw new Error('not a progress file')
-      const added = await importEvents(data.events)
-      notice = `Imported: ${added} new, ${data.events.length - added} already present.`
-    } catch (e) {
-      notice = `Import failed: ${e instanceof Error ? e.message : e}`
+      json = JSON.parse(await file.text())
+    } catch {
+      json = undefined
     }
+    // Parsed and checked in full BEFORE anything is written: a refused file leaves the log exactly as it was.
+    const parsed = parseProgressLog(json, Date.now())
+    if (parsed.ok) {
+      const all = [...parsed.events, ...parsed.unknown]
+      const added = await importEvents(all)
+      notice = `Imported: ${added} new, ${all.length - added} already present.`
+    } else {
+      notice = `Import refused, nothing was changed — ${parsed.problems.join('; ')}`
+    }
+    input.value = '' // so choosing the same file again fires a change event
   }
 </script>
 
@@ -128,6 +132,8 @@
         · update refused: Pack has problems{/if}
       {#if app.persisted === false}
         · storage not protected — export regularly{/if}
+      {#if app.quarantined}
+        · {app.quarantined} damaged event{app.quarantined === 1 ? '' : 's'} ignored{/if}
     </p>
   </main>
 {/if}

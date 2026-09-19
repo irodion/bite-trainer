@@ -1,5 +1,6 @@
 import { openDB, type IDBPDatabase } from 'idb'
 import type { PackStore } from './core/openPack'
+import type { UnknownEvent } from './core/progressLog'
 import type { LogEvent, Pack } from './core/types'
 
 let dbp: Promise<IDBPDatabase> | undefined
@@ -16,7 +17,8 @@ function db(): Promise<IDBPDatabase> {
   }))
 }
 
-export async function allEvents(): Promise<LogEvent[]> {
+/** Raw records, exactly as stored. Untrusted: run them through `readStored` before folding. */
+export async function allStoredEvents(): Promise<unknown[]> {
   return (await db()).getAll('events')
 }
 
@@ -31,7 +33,7 @@ export async function instanceId(): Promise<string> {
 }
 
 /** Set-union by event id; returns how many were new. */
-export async function addEvents(events: LogEvent[]): Promise<number> {
+export async function addEvents(events: (LogEvent | UnknownEvent)[]): Promise<number> {
   const tx = (await db()).transaction('events', 'readwrite')
   let added = 0
   for (const e of events) {

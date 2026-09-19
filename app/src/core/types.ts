@@ -105,3 +105,8 @@ export interface ResetEvent extends EventBase {
 }
 
 export type LogEvent = AttemptEvent | SessionCompletedEvent | ResetEvent
+
+type DistributiveOmit<T, K extends PropertyKey> = T extends unknown ? Omit<T, K> : never
+/** An event before it is stamped with id, Instance, time and zone on its way into the log. */
+export type NewEvent = DistributiveOmit<LogEvent, 'id' | 'instanceId' | 'at' | 'tzOffsetMin'>
+export type NewAttempt = Extract<NewEvent, { type: 'attempt' }>

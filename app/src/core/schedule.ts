@@ -15,13 +15,23 @@ export function byTime(a: LogEvent, b: LogEvent): number {
   return a.at - b.at || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0)
 }
 
+/**
+ * THE reset rule, defined once: an attempt survives if it was made after the latest `reset` of its own Pack.
+ * Returns the surviving attempts of every Pack, oldest first. One pass to find each Pack's latest reset, one to filter.
+ */
+export function survivingAttempts(events: LogEvent[]): AttemptEvent[] {
+  const latestReset = new Map<string, number>()
+  for (const e of events) {
+    if (e.type === 'reset') latestReset.set(e.packId, Math.max(latestReset.get(e.packId) ?? -Infinity, e.at))
+  }
+  return events
+    .filter((e): e is AttemptEvent => e.type === 'attempt' && e.at > (latestReset.get(e.packId) ?? -Infinity))
+    .sort(byTime)
+}
+
 /** Attempts for one Pack that survive its latest `reset`, oldest first. */
 export function liveAttempts(events: LogEvent[], packId: string): AttemptEvent[] {
-  let resetAt = -Infinity
-  for (const e of events) if (e.type === 'reset' && e.packId === packId) resetAt = Math.max(resetAt, e.at)
-  return events
-    .filter((e): e is AttemptEvent => e.type === 'attempt' && e.packId === packId && e.at > resetAt)
-    .sort(byTime)
+  return survivingAttempts(events).filter((e) => e.packId === packId)
 }
 
 /** Leitner fold: wrong → box 1; correct but overtime → stay; correct in time → promote. */

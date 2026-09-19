@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest'
-import { completedToday, composeSession, SESSION_BUDGET_S, summarize, unfinishedSession } from './session'
+import { answerEvents, completedToday, composeSession, SESSION_BUDGET_S, summarize, unfinishedSession } from './session'
 import type { Exercise, LogEvent, Pack } from './types'
 
 const HOUR = 3_600_000
@@ -123,4 +123,44 @@ test('today counts as done once a Session was completed on this local day', () =
   expect(completedToday(events, NOON + 5 * HOUR, 0)).toBe(true)
   expect(completedToday(events, NOON + DAY, 0)).toBe(false)
   expect(completedToday([attempt('s1', 'ex1', NOON)], NOON + HOUR, 0)).toBe(false)
+})
+
+const newAttempt = {
+  type: 'attempt',
+  sessionId: 's1',
+  packId: 'p',
+  packVersion: '1',
+  exerciseId: 'ex1',
+  answer: { optionId: 'a' },
+  correct: true,
+  elapsedMs: 1000,
+  timeBudget: 60,
+} as const
+
+test('answering any Exercise but the last records just the attempt', () => {
+  expect(answerEvents(newAttempt, { index: 3, total: 9 })).toEqual([newAttempt])
+})
+
+test('answering the last Exercise records the attempt and the Session completion together', () => {
+  expect(answerEvents(newAttempt, { index: 8, total: 9 })).toEqual([
+    newAttempt,
+    { type: 'session-completed', sessionId: 's1' },
+  ])
+})
+
+test('erasing one Pack does not touch a half-done Session in another Pack', () => {
+  const events: LogEvent[] = [
+    attempt('s1', 'ex1', NOON),
+    { type: 'reset', id: 'r-other', instanceId: 'i', at: NOON + 1, tzOffsetMin: 0, packId: 'some-other-pack' },
+  ]
+  expect(unfinishedSession(events, NOON + HOUR, 0)?.id).toBe('s1')
+})
+
+test('the unfinished-Session fold stays fast as the log grows: years of daily use, not a frozen screen', () => {
+  const years = Array.from({ length: 20_000 }, (_, i) =>
+    attempt(`s${i >> 3}`, `ex${i % 20}`, NOON - (20_000 - i) * 60_000),
+  )
+  const started = performance.now()
+  unfinishedSession(years, NOON, 0)
+  expect(performance.now() - started).toBeLessThan(150)
 })
