@@ -18,8 +18,8 @@ if ! pnpm --silent verify; then
   exit 1
 fi
 
-# Pack content changed: every Exercise's claim must hold against the real compiler.
-if ! git diff --cached --quiet -- app/public/packs/ app/tools/verify-pack/; then
+# Pack content changed (":/" = repo root; we are inside app/ here): every Exercise's claim must hold against the real compiler.
+if ! git diff --cached --quiet -- ":/app/public/packs/" ":/app/tools/verify-pack/"; then
   if command -v rustc >/dev/null 2>&1; then
     echo "pre-commit: pnpm verify-pack (rustc checks every Exercise's claim)"
     if ! pnpm --silent verify-pack; then
