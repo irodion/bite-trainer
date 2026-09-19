@@ -68,3 +68,18 @@ test('authoring limits: a snippet over 30 lines or 60 columns is a problem', asy
     'adds: line 1 is 81 columns wide (limit 60)',
   ])
 })
+
+test('options are shuffled by the app, so an option that refers to another by position is a problem', async () => {
+  const positional = {
+    ...exercise,
+    options: [
+      { id: 'a', text: '`2`', correct: true, rationale: '' },
+      { id: 'b', text: 'None of the above', rationale: '' },
+      { id: 'c', text: '`3`', rationale: 'Same mistake as option A.' },
+    ],
+  }
+  expect((await verifyPack(await packOnDisk(positional), prints('2\n'))).problems).toEqual([
+    'adds: option b refers to other options by position ("None of the above") — options are shuffled',
+    'adds: option c refers to other options by position ("option A") — options are shuffled',
+  ])
+})

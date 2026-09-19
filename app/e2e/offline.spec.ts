@@ -41,3 +41,17 @@ test('the app is installable: manifest with name, icons, start_url and standalon
   expect(manifest).toMatchObject({ name: 'Bite Trainer', display: 'standalone', start_url: './' })
   expect(manifest.icons.map((i: { sizes: string }) => i.sizes)).toEqual(['192x192', '512x512'])
 })
+
+test('options are shuffled: the same Exercise does not present its options in the same order every time', async ({
+  page,
+}) => {
+  const orders = new Set<string>()
+  for (let attempt = 0; attempt < 8; attempt++) {
+    await page.goto('./')
+    await page.getByRole('button', { name: /Start Session/ }).click()
+    await page.getByRole('button', { name: /answers/ }).click()
+    orders.add((await page.locator('.opt .body').allTextContents()).join(' | '))
+  }
+  // 4 options → 24 orders; 8 identical draws by chance is (1/24)^7.
+  expect(orders.size).toBeGreaterThan(1)
+})

@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { SessionItem } from '../core/session'
+  import { shuffled } from '../core/shuffle'
   import type { PackManifest } from '../core/types'
   import { nextExercise, recordAttempt } from '../state.svelte'
   import Code from './Code.svelte'
@@ -15,6 +16,9 @@
   let { item, manifest, sessionId, index, total }: Props = $props()
   const ex = $derived(item.exercise)
   const lang = $derived(manifest.language.highlight)
+  // Options are presented in a fresh random order every time, so position never gives the answer away.
+  // Letters follow the display position; the Progress Log records the option id.
+  const options = $derived(ex.type === 'choice' ? shuffled(ex.options) : [])
 
   let choice: string | undefined = $state()
   let line: number | undefined = $state()
@@ -103,7 +107,7 @@
 
   {#if ex.type === 'choice'}
     <div class="keys">
-      {#each ex.options as o, i (o.id)}
+      {#each options as o, i (o.id)}
         <button class="kbtn {mark(o.id, o.correct)}" disabled={done} onclick={() => (choice = o.id)}>{letter(i)}</button
         >
       {/each}
@@ -132,7 +136,7 @@
 
       {#if ex.type === 'choice'}
         <div class="opts">
-          {#each ex.options as o, i (o.id)}
+          {#each options as o, i (o.id)}
             <button class="opt {mark(o.id, o.correct)}" disabled={done} onclick={() => (choice = o.id)}>
               <span class="key">{letter(i)}</span>
               <span class="body">

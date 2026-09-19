@@ -34,8 +34,17 @@ export async function verifyPack(manifestPath: string, toolchain: Toolchain): Pr
   return { exercises: exercises.length, problems }
 }
 
+const POSITIONAL = /\b(?:all|none|both) of the above\b|\boptions? [A-H]\b|\b(?:previous|next|first|last) option\b/i
+
 function limitProblems(ex: Exercise): string[] {
   const out: string[] = []
+  if (ex.type === 'choice') {
+    for (const o of ex.options) {
+      const hit = POSITIONAL.exec(`${o.text ?? ''}\n${o.rationale}`)
+      if (hit)
+        out.push(`${ex.id}: option ${o.id} refers to other options by position ("${hit[0]}") — options are shuffled`)
+    }
+  }
   if (ex.code.length > MAX_LINES) out.push(`${ex.id}: snippet is ${ex.code.length} lines long (limit ${MAX_LINES})`)
   ex.code.forEach((l, i) => {
     if (l.length > MAX_COLUMNS) out.push(`${ex.id}: line ${i + 1} is ${l.length} columns wide (limit ${MAX_COLUMNS})`)
