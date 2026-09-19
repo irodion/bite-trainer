@@ -1,1 +1,5 @@
 .worktrees/
+
+# Local planning trail and research notes: kept on disk, not published.
+.scratch/
+docs/research/

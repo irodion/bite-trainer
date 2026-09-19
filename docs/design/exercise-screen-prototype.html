@@ -1,0 +1,524 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Exercise Screen Prototype</title>
+<!--
+  PROTOTYPE — throwaway. Wayfinder ticket 04 (bite-trainer).
+  Three structurally different Exercise screens, switchable via ?variant=A|B|C and the dark bar at the bottom.
+  Also: ?ex=0..3, ?fs=<px>, ?wrap=0|1, ?frames=1 (phone / tablet / desktop side by side, local file only).
+  No persistence, no real deep links, no tests.
+-->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+:root{
+  --ground:#EEF1F4; --surface:#FBFCFD; --sunk:#E3E8ED; --ink:#1B2430; --muted:#5C6B7A; --rule:#CFD7DF;
+  --accent:#2F5FD0; --accent-soft:#DCE6FB; --good:#1E8A5A; --good-soft:#D9F0E5; --bad:#C2413B; --bad-soft:#F8DFDD; --warn:#B7791F;
+  --k:#7A3FB8; --s:#1E7A4F; --t:#0F6E8C; --n:#A8590F; --c:#8693A0; --m:#B03A6B;
+  --fs:13px; --lh:1.55;
+  --ui:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ground:#12171E; --surface:#1A212B; --sunk:#0E1218; --ink:#E3E9F0; --muted:#93A1B0; --rule:#2B3542;
+    --accent:#7FA2FF; --accent-soft:#1F2D4D; --good:#4CC38A; --good-soft:#15332A; --bad:#F0807A; --bad-soft:#3A1E1E; --warn:#E0A84A;
+    --k:#C39BF0; --s:#7FD3A4; --t:#6CC6E0; --n:#F0B070; --c:#6B7886; --m:#F08FB5;
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#12171E; --surface:#1A212B; --sunk:#0E1218; --ink:#E3E9F0; --muted:#93A1B0; --rule:#2B3542;
+  --accent:#7FA2FF; --accent-soft:#1F2D4D; --good:#4CC38A; --good-soft:#15332A; --bad:#F0807A; --bad-soft:#3A1E1E; --warn:#E0A84A;
+  --k:#C39BF0; --s:#7FD3A4; --t:#6CC6E0; --n:#F0B070; --c:#6B7886; --m:#F08FB5;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{height:100%}
+body{margin:0;background:var(--ground);color:var(--ink);font:15px/1.45 var(--ui);display:flex;flex-direction:column;overflow:hidden}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;text-align:left}
+button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+#app{flex:1;min-height:0;display:flex;flex-direction:column;position:relative}
+
+/* shared bits */
+.meta{display:flex;gap:8px;align-items:center;font-size:12px;color:var(--muted);letter-spacing:.04em;text-transform:uppercase}
+.meta b{color:var(--ink);font-weight:600}
+.tag{border:1px solid var(--rule);border-radius:3px;padding:1px 6px;text-transform:none;letter-spacing:0;font-family:var(--mono);font-size:11px}
+.prompt{font-size:16px;font-weight:500;margin:0;text-wrap:balance}
+.link{color:var(--accent);font-size:13px;font-weight:500;padding:6px 0}
+.time{font:12px var(--mono);font-variant-numeric:tabular-nums;color:var(--muted)}
+.time.over{color:var(--warn)}
+.btn{background:var(--accent);color:var(--surface);font-weight:600;border-radius:6px;padding:11px 18px;min-height:44px;text-align:center}
+.btn[disabled]{opacity:.4;cursor:default}
+.btn.ghost{background:none;color:var(--accent);border:1px solid var(--rule)}
+
+.code{background:var(--surface);font:var(--fs)/var(--lh) var(--mono);overflow:auto;-webkit-overflow-scrolling:touch;padding-block:8px;font-variant-ligatures:none}
+.code-in{min-width:max-content}
+.wrap .code-in{min-width:0}
+.ln{display:flex}
+.no{position:sticky;left:0;flex:none;width:3.4ch;padding-right:1ch;text-align:right;color:var(--c);background:var(--surface);user-select:none;box-sizing:content-box;padding-left:6px}
+.tx{white-space:pre;padding-right:12px;flex:1}
+.wrap .tx{white-space:pre-wrap;overflow-wrap:anywhere;min-width:0}
+.k{color:var(--k)}.s{color:var(--s)}.t{color:var(--t)}.n{color:var(--n)}.c{color:var(--c);font-style:italic}.m{color:var(--m)}
+.pickable .ln{cursor:pointer}
+.ln.sel,.ln.sel .no{background:var(--accent-soft)}
+.ln.ok,.ln.ok .no{background:var(--good-soft)}
+.ln.no-,.ln.no- .no{background:var(--bad-soft)}
+.ln.sel .no{color:var(--accent);font-weight:600}
+
+.opts{display:flex;flex-direction:column;gap:8px}
+.opt{display:flex;gap:10px;align-items:flex-start;width:100%;background:var(--surface);border:1px solid var(--rule);border-radius:6px;padding:10px 12px;min-height:44px}
+.opt .key{flex:none;width:22px;height:22px;border-radius:50%;border:1.5px solid var(--muted);font:600 11px/19px var(--mono);text-align:center;color:var(--muted)}
+.opt .body{flex:1;min-width:0}
+.opt .txt{font:13px/1.5 var(--mono)}
+.opt pre{font-variant-ligatures:none;margin:0;font:12px/1.5 var(--mono);overflow-x:auto;white-space:pre;font-variant-ligatures:none}
+.opt.sel{border-color:var(--accent);background:var(--accent-soft)}
+.opt.sel .key{border-color:var(--accent);color:var(--accent)}
+.opt.ok{border-color:var(--good);background:var(--good-soft)}
+.opt.ok .key{background:var(--good);border-color:var(--good);color:var(--surface)}
+.opt.no-{border-color:var(--bad);background:var(--bad-soft)}
+.opt.no- .key{background:var(--bad);border-color:var(--bad);color:var(--surface)}
+.why{font:14px/1.5 var(--ui);color:var(--ink);margin-top:6px;padding-top:6px;border-top:1px dashed var(--rule)}
+.verdict{font-weight:600}
+.verdict.ok{color:var(--good)}.verdict.no-{color:var(--bad)}
+.after{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center}
+.after .btn{margin-left:auto}
+.note{font-size:14px;line-height:1.5;background:var(--surface);border-left:3px solid var(--rule);padding:8px 12px}
+.note.ok{border-color:var(--good)}.note.no-{border-color:var(--bad)}
+
+/* A — one scrolling page */
+[data-v="A"] .tbar{height:3px;background:var(--sunk);flex:none}
+[data-v="A"] .tbar i{display:block;height:100%;background:var(--accent);width:0}
+[data-v="A"] .tbar.over i{background:var(--warn)}
+[data-v="A"] .scroll{flex:1;min-height:0;overflow-y:auto}
+[data-v="A"] .col{max-width:780px;margin:0 auto;display:flex;flex-direction:column;gap:14px;padding-block:14px 24px}
+[data-v="A"] .pad{padding-inline:16px;display:flex;flex-direction:column;gap:10px}
+[data-v="A"] .code{border-block:1px solid var(--rule);overflow-y:visible}
+[data-v="A"] .foot{flex:none;border-top:1px solid var(--rule);background:var(--ground);padding:8px 16px;display:flex;gap:8px;align-items:center;justify-content:flex-end}
+[data-v="A"] .foot .max{max-width:780px}
+.nudge{display:flex;align-items:center;gap:4px;margin-right:auto;font:13px var(--mono)}
+.nudge button{width:44px;height:44px;border:1px solid var(--rule);border-radius:6px;text-align:center;font-size:16px}
+@media(min-width:900px){[data-v="A"] .code{border:1px solid var(--rule);border-radius:6px;margin-inline:16px}}
+
+/* B — code fills the screen, answers live in a bottom sheet */
+[data-v="B"] .code{flex:1;min-height:0;--lh:1.55}
+[data-v="B"] .code.pickable{--lh:2.1}
+[data-v="B"] .code.pickable .no{width:5ch;border-right:1px solid var(--rule);margin-right:1ch;color:var(--accent)}
+[data-v="B"] .sheet{flex:none;max-height:62%;display:flex;flex-direction:column;background:var(--ground);border-top:1px solid var(--rule);box-shadow:0 -8px 24px rgba(10,20,40,.12)}
+[data-v="B"] .grip{display:flex;gap:10px;align-items:center;padding:10px 16px;width:100%;min-height:48px}
+[data-v="B"] .grip .prompt{flex:1;font-size:15px}
+[data-v="B"] .sheet.shut .grip .prompt{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+[data-v="B"] .chev{color:var(--muted);font-size:12px}
+.ring{flex:none;width:22px;height:22px;border-radius:50%;background:conic-gradient(var(--accent) calc(var(--p,0)*1%),var(--sunk) 0)}
+.ring.over{background:var(--warn)}
+[data-v="B"] .sheet-body{overflow-y:auto;padding:0 16px 14px;display:flex;flex-direction:column;gap:10px}
+[data-v="B"] .sheet.shut .sheet-body{display:none}
+@media(min-width:900px){
+  [data-v="B"] .opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}
+  [data-v="B"] .sheet{max-height:50%}
+}
+
+/* C — two panes; on a phone you flip between them, lettered keys stay under the code */
+[data-v="C"] .head{flex:none;display:flex;gap:10px;align-items:center;padding:8px 16px;border-bottom:1px solid var(--rule)}
+[data-v="C"] .seg{display:flex;border:1px solid var(--rule);border-radius:6px;overflow:hidden;margin-left:auto}
+[data-v="C"] .seg button{padding:7px 14px;font-size:13px;font-weight:500;min-height:36px}
+[data-v="C"] .seg button.on{background:var(--ink);color:var(--ground)}
+[data-v="C"] .panes{flex:1;min-height:0;display:flex}
+[data-v="C"] .pane{flex:1;min-width:0;min-height:0;display:flex;flex-direction:column}
+[data-v="C"] .pane.code-pane .code{flex:1;min-height:0}
+[data-v="C"] .pane.ans{overflow-y:auto;padding:14px 16px;gap:12px}
+[data-v="C"] .keys{flex:none;display:flex;gap:6px;padding:8px 16px;border-top:1px solid var(--rule);align-items:center}
+[data-v="C"] .keys .kbtn{flex:1;min-height:44px;border:1px solid var(--rule);border-radius:6px;text-align:center;font:600 14px var(--mono);background:var(--surface)}
+[data-v="C"] .keys .kbtn.sel{background:var(--accent);color:var(--surface);border-color:var(--accent)}
+[data-v="C"] .keys .kbtn.ok{background:var(--good);color:var(--surface);border-color:var(--good)}
+[data-v="C"] .keys .kbtn.no-{background:var(--bad);color:var(--surface);border-color:var(--bad)}
+[data-v="C"] .peek{flex:none;padding:8px 16px;border-bottom:1px solid var(--rule);font-size:14px;font-weight:500}
+.pop{position:sticky;left:4ch;display:inline-flex;margin:2px 0 4px 5ch;background:var(--accent);color:var(--surface);font:600 13px var(--ui);border-radius:6px;padding:10px 14px;min-height:40px}
+@media(max-width:899px){[data-v="C"] .pane.hide{display:none}}
+@media(min-width:900px){
+  [data-v="C"] .seg,[data-v="C"] .peek{display:none}
+  [data-v="C"] .pane.code-pane{flex:1.4;border-right:1px solid var(--rule)}
+}
+
+/* primer + toast */
+.scrim{position:absolute;inset:0;background:rgba(10,16,24,.5);display:flex;align-items:flex-end;justify-content:center;z-index:5}
+.primer{background:var(--surface);max-width:640px;width:100%;max-height:80%;overflow-y:auto;padding:18px 16px 22px;border-radius:12px 12px 0 0;display:flex;flex-direction:column;gap:10px}
+.primer h2{margin:0;font-size:18px}
+.primer p{margin:0;max-width:65ch}
+.primer code{font:13px var(--mono);background:var(--sunk);padding:1px 4px;border-radius:3px}
+.toast{position:absolute;left:16px;right:16px;bottom:12px;margin:auto;max-width:420px;background:var(--ink);color:var(--ground);padding:10px 14px;border-radius:6px;font-size:13px;z-index:6}
+
+/* prototype bar — deliberately not part of the design */
+#bar{flex:none;background:#0B0E12;color:#E8ECF1;font:12px var(--mono);padding:6px 10px calc(6px + env(safe-area-inset-bottom,0px));display:flex;flex-wrap:wrap;gap:4px 12px;align-items:center;justify-content:center;border-top:2px solid #F2C14E}
+#bar .grp{display:flex;align-items:center;gap:2px}
+#bar button{min-width:30px;height:30px;text-align:center;border-radius:4px;background:#232A33;color:#E8ECF1;padding:0 8px}
+#bar button.on{background:#F2C14E;color:#0B0E12}
+#bar .lab{padding:0 6px;white-space:nowrap}
+#bar .stat{flex-basis:100%;text-align:center;color:#9AA7B5;font-size:11px}
+#frames{flex:1;min-height:0;display:flex;gap:16px;padding:16px;overflow:auto;align-items:flex-start}
+#frames figure{margin:0;display:flex;flex-direction:column;gap:6px;flex:none}
+#frames figcaption{font:12px var(--mono);color:var(--muted)}
+#frames iframe{border:1px solid var(--rule);background:var(--ground);border-radius:8px}
+@media (prefers-reduced-motion:no-preference){.opt,.ln{transition:background-color .12s}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="frames" hidden></div>
+<div id="bar"></div>
+
+<script>
+/* ---------- content: four compiler-checked Rust Exercises (rustc 1.94) ---------- */
+const EX = [
+{ topic:'Iterators', flavor:'predict-output', type:'choice', budget:45,
+  prompt:'What does this program print?',
+  code:`fn main() {
+    let words = vec!["apple", "fig", "banana", "kiwi"];
+
+    let total: usize = words
+        .iter()
+        .filter(|w| w.len() > 3)
+        .map(|w| w.len())
+        .sum();
+
+    let total = total * 2;
+    let label = if total > 30 { "big" } else { "small" };
+
+    println!("{total} {label}");
+}`,
+  options:[
+    {text:'30 small', correct:true, why:'apple (5) + banana (6) + kiwi (4) = 15; shadowed to 30. The test is strictly greater than 30, so the label is "small".'},
+    {text:'30 big', why:'The sum is right, but 30 > 30 is false — the comparison is strict.'},
+    {text:'36 big', why:'This counts "fig" too. It has length 3, and the filter keeps only lengths greater than 3.'},
+    {text:'Does not compile: total is declared twice', why:'Re-declaring with let is shadowing, which is legal. The second total is a new binding.'},
+  ],
+  primer:['Iterator adaptors are lazy','<code>filter</code> and <code>map</code> build a pipeline; nothing runs until a consumer such as <code>sum</code> or <code>collect</code> pulls values through it.','Closures passed to <code>filter</code> receive a reference to the item, so with <code>.iter()</code> over <code>Vec&lt;&amp;str&gt;</code> the closure sees <code>&amp;&amp;str</code>. Method calls auto-deref, which is why <code>w.len()</code> still works.'] },
+
+{ topic:'Borrowing', flavor:'predict-error', type:'choice', budget:75,
+  prompt:'This does not compile. What does the compiler object to?',
+  code:`#[derive(Debug)]
+struct Inventory {
+    items: Vec<String>,
+    capacity: usize,
+}
+
+impl Inventory {
+    fn new(capacity: usize) -> Self {
+        Inventory { items: Vec::new(), capacity }
+    }
+
+    fn first(&self) -> Option<&String> {
+        self.items.first()
+    }
+
+    fn add(&mut self, item: &str) -> bool {
+        if self.items.len() >= self.capacity {
+            return false;
+        }
+        self.items.push(item.to_string());
+        true
+    }
+}
+
+fn main() {
+    let mut inv = Inventory::new(3);
+    inv.add("rope");
+
+    let first = inv.first();
+    inv.add("torch");
+
+    println!("first = {:?}, all = {:?}", first, inv);
+}`,
+  options:[
+    {text:'E0502: inv is borrowed mutably on line 30 while first still borrows it', correct:true, why:'first holds a shared borrow of inv that lives until the println! on line 32. add needs &mut self in between, and the two cannot overlap.'},
+    {text:'E0382: inv was moved into first on line 29', why:'first(&self) only borrows. Nothing is moved, so there is no use-after-move here.'},
+    {text:'E0499: inv is borrowed mutably twice (lines 27 and 30)', why:'The mutable borrow on line 27 ends when that call returns. Two sequential &mut borrows are fine.'},
+    {text:'E0308: add returns bool but the result is unused', why:'Ignoring a bool is legal. Only #[must_use] types warn, and a warning is not an error.'},
+  ],
+  primer:['Shared XOR mutable','At any point a value may have any number of <code>&amp;T</code> borrows, or exactly one <code>&amp;mut T</code> — never both.','A borrow lasts until its last use, not until the end of the block. Reading code for borrow errors means finding the <em>last use</em> of each reference and checking what happens in between.'] },
+
+{ topic:'Ownership', flavor:'find-the-line', type:'line', budget:90, answer:39,
+  prompt:'Tap the line the compiler rejects.',
+  code:`use std::collections::HashMap;
+
+#[derive(Debug, Clone)]
+struct Order {
+    id: u32,
+    customer: String,
+    lines: Vec<(String, u32)>,
+}
+
+fn total_quantity(order: &Order) -> u32 {
+    order.lines.iter().map(|(_, qty)| qty).sum()
+}
+
+fn archive(order: Order, store: &mut HashMap<u32, Order>) {
+    store.insert(order.id, order);
+}
+
+fn summarize(orders: &[Order]) -> HashMap<String, u32> {
+    let mut per_customer: HashMap<String, u32> = HashMap::new();
+    for order in orders {
+        *per_customer.entry(order.customer.clone()).or_insert(0) += total_quantity(order);
+    }
+    per_customer
+}
+
+fn main() {
+    let mut store = HashMap::new();
+    let order = Order {
+        id: 7,
+        customer: String::from("ada"),
+        lines: vec![(String::from("bolt"), 40), (String::from("nut"), 40)],
+    };
+
+    let pending = vec![order.clone()];
+    println!("{:?}", summarize(&pending));
+
+    archive(order, &mut store);
+    println!("archived {} order(s)", store.len());
+    println!("order {} had {} items", order.id, total_quantity(&order));
+}`,
+  whyCorrect:'Line 39 borrows order after line 37 moved it into archive (E0382). The move itself is legal; the later use is what fails.',
+  lines:{
+    37:'This is where order is moved — and moving is allowed. The error is reported where the moved value is used again.',
+    34:'clone() makes an independent copy, so order is still owned by main afterwards.',
+    15:'order.id is a u32, which is Copy, so it is read before order itself moves into the map. Argument evaluation order makes this fine.',
+    21:'Dense, but valid: entry().or_insert(0) yields &mut u32, and the deref-assign adds to it.',
+  },
+  fallback:'That line compiles. Look for a value that is used after ownership has been given away.',
+  primer:['Moves','Passing a non-Copy value by value transfers ownership. The old binding still exists in scope but may no longer be read.','When scanning for a use-after-move, find every call that takes <code>T</code> rather than <code>&amp;T</code>, then look <em>below</em> it for the same name.'] },
+
+{ topic:'Error handling', flavor:'pick-refactor', type:'choice', budget:90,
+  prompt:'Which replacement for lines 6–9 keeps the behaviour identical?',
+  code:`fn parse_port(input: &str) -> Result<u16, String> {
+    let trimmed = input.trim();
+    if trimmed.is_empty() {
+        return Err(String::from("empty"));
+    }
+    let port = match trimmed.parse::<u16>() {
+        Ok(p) => p,
+        Err(e) => return Err(e.to_string()),
+    };
+    if port < 1024 {
+        return Err(String::from("reserved"));
+    }
+    Ok(port)
+}`,
+  options:[
+    {code:`let port = trimmed.parse::<u16>()
+    .map_err(|e| e.to_string())?;`, correct:true, why:'map_err converts ParseIntError into String, and ? returns early on Err — exactly what the match did.'},
+    {code:`let port = trimmed.parse::<u16>()?;`, why:'? needs From<ParseIntError> for String, which does not exist. This fails to compile.'},
+    {code:`let port = trimmed.parse::<u16>()
+    .unwrap_or_default();`, why:'Compiles, but bad input now becomes port 0 and is reported as "reserved" instead of the parse error.'},
+    {code:`let port = trimmed.parse::<u16>()
+    .expect("invalid port");`, why:'Turns a recoverable error into a panic. The function signature promises a Result.'},
+  ],
+  primer:['The ? operator','<code>expr?</code> unwraps <code>Ok</code>, or returns <code>Err(From::from(e))</code> from the enclosing function.','When the error types differ and no <code>From</code> impl exists, convert first with <code>map_err</code>.'] },
+];
+
+/* ---------- state ---------- */
+const VARIANTS = {A:'One scrolling page', B:'Pinned code + answer sheet', C:'Two panes + letter keys'};
+const q = new URLSearchParams(location.search);
+const S = {
+  v: VARIANTS[q.get('variant')] ? q.get('variant') : 'A',
+  ex: Math.min(EX.length-1, Math.max(0, +q.get('ex')||0)),
+  fs: +q.get('fs') || 13,
+  wrap: q.get('wrap') === '1',
+  frames: q.get('frames') === '1',
+  inFrame: q.get('frame') === '1',
+  sel: null, done: false, t0: Date.now(), took: 0, sheet: false, pane: 'code', primer: false, toast: '',
+};
+const canFrame = location.protocol === 'file:' || /^(localhost|127\.)/.test(location.hostname);
+
+/* ---------- helpers ---------- */
+const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const KW = 'as|break|const|continue|else|enum|fn|for|if|impl|in|let|loop|match|mod|move|mut|pub|ref|return|self|Self|struct|trait|type|use|where|while|true|false';
+const RE = new RegExp('(\\/\\/.*$)|("(?:[^"\\\\]|\\\\.)*")|(#\\[[^\\]]*\\])|\\b(\\d[\\d_]*)\\b|\\b('+KW+')\\b|\\b([a-z_]+!)|\\b([A-Z][A-Za-z0-9]*)\\b','g');
+function hl(line){
+  let out='', i=0, m; RE.lastIndex=0;
+  while((m=RE.exec(line))){
+    out += esc(line.slice(i,m.index));
+    const cls = m[1]?'c':m[2]?'s':m[3]?'c':m[4]?'n':m[5]?'k':m[6]?'m':'t';
+    out += '<span class="'+cls+'">'+esc(m[0])+'</span>'; i = m.index+m[0].length;
+  }
+  return out + esc(line.slice(i));
+}
+const mmss = s => Math.floor(s/60)+':'+String(Math.floor(s%60)).padStart(2,'0');
+const ex = () => EX[S.ex];
+const elapsed = () => S.done ? S.took : (Date.now()-S.t0)/1000;
+const right = () => ex().type==='line' ? S.sel===ex().answer : !!ex().options[S.sel]?.correct;
+
+function codeHTML(popover){
+  const e = ex(), pick = e.type==='line';
+  const rows = e.code.split('\n').map((l,i)=>{
+    const n=i+1; let c='ln';
+    if(pick){
+      if(S.done && n===e.answer) c+=' ok'; else if(S.done && n===S.sel) c+=' no-'; else if(!S.done && n===S.sel) c+=' sel';
+    }
+    let row = '<div class="'+c+'" data-line="'+n+'"><span class="no">'+n+'</span><span class="tx">'+(hl(l)||' ')+'</span></div>';
+    if(popover && pick && !S.done && n===S.sel) row += '<button class="pop" data-act="check">Check line '+n+'</button>';
+    return row;
+  }).join('');
+  return '<div class="code'+(pick&&!S.done?' pickable':'')+(S.wrap?' wrap':'')+'"><div class="code-in">'+rows+'</div></div>';
+}
+function optsHTML(){
+  const e = ex(); if(e.type!=='choice') return '';
+  return '<div class="opts">'+e.options.map((o,i)=>{
+    let c='opt';
+    if(S.done){ if(o.correct) c+=' ok'; else if(i===S.sel) c+=' no-'; } else if(i===S.sel) c+=' sel';
+    const body = o.code ? '<pre>'+o.code.split('\n').map(hl).join('\n')+'</pre>' : '<div class="txt">'+esc(o.text)+'</div>';
+    const why = S.done ? '<div class="why">'+esc(o.why)+'</div>' : '';
+    return '<button class="'+c+'" data-act="pick" data-i="'+i+'"><span class="key">'+'ABCD'[i]+'</span><span class="body">'+body+why+'</span></button>';
+  }).join('')+'</div>';
+}
+function lineWhyHTML(){
+  const e = ex(); if(e.type!=='line' || !S.done) return '';
+  let h='';
+  if(S.sel!==e.answer) h += '<div class="note no-"><b>Line '+S.sel+'.</b> '+esc(e.lines[S.sel]||e.fallback)+'</div>';
+  return h + '<div class="note ok"><b>Line '+e.answer+'.</b> '+esc(e.whyCorrect)+'</div>';
+}
+function afterHTML(){
+  if(!S.done) return '';
+  const over = S.took - ex().budget;
+  return '<div class="after"><span class="verdict '+(right()?'ok':'no-')+'">'+(right()?'Correct':'Not quite')+'</span>'
+    +'<span class="time'+(over>0?' over':'')+'">'+mmss(S.took)+(over>0?' · '+Math.round(over)+'s over budget':' · within budget')+'</span>'
+    +'<button class="link" data-act="explain">Explain more in Claude ↗</button>'
+    +'<button class="btn" data-act="next">Next</button></div>';
+}
+const metaHTML = () => '<div class="meta"><b>'+esc(ex().topic)+'</b><span class="tag">'+ex().flavor+'</span><span>'+(S.ex+1)+' / '+EX.length+'</span></div>';
+const primerLink = () => '<button class="link" data-act="primer">Primer: '+esc(ex().primer[0])+'</button>';
+
+/* ---------- variants ---------- */
+function VariantA(){
+  const e = ex(), pick = e.type==='line';
+  let foot='';
+  if(!S.done){
+    const nudge = pick && S.sel ? '<div class="nudge"><button data-act="nudge" data-d="-1" aria-label="Line up">▲</button><button data-act="nudge" data-d="1" aria-label="Line down">▼</button><span>line '+S.sel+'</span></div>' : '';
+    foot = '<div class="foot">'+nudge+'<button class="btn" data-act="check"'+(S.sel==null?' disabled':'')+'>Check</button></div>';
+  }
+  return '<div class="tbar" data-tbar><i></i></div><div class="scroll"><div class="col">'
+    +'<div class="pad">'+metaHTML()+'<h1 class="prompt">'+esc(e.prompt)+'</h1></div>'
+    +codeHTML(false)
+    +'<div class="pad">'+optsHTML()+lineWhyHTML()+afterHTML()+primerLink()+'</div>'
+    +'</div></div>'+foot;
+}
+function VariantB(){
+  const e = ex(), pick = e.type==='line', open = S.sheet || S.done;
+  let body = optsHTML()+lineWhyHTML();
+  if(pick && !S.done) body = '<div class="after"><span class="time">'+(S.sel?'Line '+S.sel+' selected':'Tap a line number in the gutter')+'</span><button class="btn" data-act="check"'+(S.sel?'':' disabled')+'>Check</button></div>';
+  return codeHTML(false)
+    +'<div class="sheet'+(open?'':' shut')+'"><button class="grip" data-act="sheet"><span class="ring" data-ring></span><span class="prompt">'+esc(e.prompt)+'</span><span class="chev">'+(open?'▼':'▲ answers')+'</span></button>'
+    +'<div class="sheet-body">'+metaHTML()+body+afterHTML()+primerLink()+'</div></div>';
+}
+function VariantC(){
+  const e = ex(), pick = e.type==='line';
+  let keys='';
+  if(e.type==='choice'){
+    keys = '<div class="keys">'+e.options.map((o,i)=>{
+      let c='kbtn'; if(S.done){ if(o.correct) c+=' ok'; else if(i===S.sel) c+=' no-'; } else if(i===S.sel) c+=' sel';
+      return '<button class="'+c+'" data-act="pick" data-i="'+i+'">'+'ABCD'[i]+'</button>';
+    }).join('')+(S.done?'':'<button class="btn" data-act="check"'+(S.sel==null?' disabled':'')+'>Check</button>')+'</div>';
+  }
+  return '<div class="head">'+metaHTML()+'<span class="time" data-clock></span>'
+    +'<div class="seg"><button data-act="pane" data-p="code" class="'+(S.pane==='code'?'on':'')+'">Code</button><button data-act="pane" data-p="ans" class="'+(S.pane==='ans'?'on':'')+'">'+(pick?'Question':'Answers')+'</button></div></div>'
+    +'<div class="panes"><div class="pane code-pane'+(S.pane==='code'?'':' hide')+'"><div class="peek">'+esc(e.prompt)+'</div>'+codeHTML(true)+keys+'</div>'
+    +'<div class="pane ans'+(S.pane==='ans'?'':' hide')+'"><h1 class="prompt">'+esc(e.prompt)+'</h1>'+optsHTML()+lineWhyHTML()+afterHTML()+primerLink()+'</div></div>';
+}
+
+/* ---------- render ---------- */
+const app = document.getElementById('app'), bar = document.getElementById('bar'), frames = document.getElementById('frames');
+function render(){
+  document.documentElement.style.setProperty('--fs', S.fs+'px');
+  syncURL();
+  if(S.frames && !S.inFrame){ app.hidden = true; frames.hidden = false; renderFrames(); renderBar(); return; }
+  app.hidden = false; frames.hidden = true;
+  const old = app.querySelector('.code'), pos = old ? [old.scrollTop, old.scrollLeft] : null;
+  const oldScroll = app.querySelector('.scroll'), sp = oldScroll ? oldScroll.scrollTop : null;
+  app.dataset.v = S.v;
+  let h = {A:VariantA,B:VariantB,C:VariantC}[S.v]();
+  if(S.primer){ const p = ex().primer; h += '<div class="scrim" data-act="primer-close"><div class="primer"><div class="meta"><b>Primer</b><span>'+esc(ex().topic)+'</span></div><h2>'+p[0]+'</h2>'+p.slice(1).map(x=>'<p>'+x+'</p>').join('')+'<button class="btn ghost" data-act="primer-close">Back to the Exercise</button></div></div>'; }
+  if(S.toast) h += '<div class="toast">'+esc(S.toast)+'</div>';
+  app.innerHTML = h;
+  const c = app.querySelector('.code'); if(c && pos){ c.scrollTop = pos[0]; c.scrollLeft = pos[1]; }
+  const sc = app.querySelector('.scroll'); if(sc && sp!=null) sc.scrollTop = sp;
+  tick(); renderBar();
+}
+function renderBar(){
+  if(S.inFrame){ bar.hidden = true; return; }
+  const e = ex(), lines = e.code.split('\n'), maxc = Math.max(...lines.map(l=>l.length));
+  let fit = '—'; const c = app.querySelector('.code');
+  if(c && !app.hidden){
+    const probe = document.createElement('span'); probe.style.cssText='font:'+S.fs+'px var(--mono);position:absolute;visibility:hidden;white-space:pre'; probe.textContent='M'.repeat(50);
+    c.appendChild(probe); const ch = probe.getBoundingClientRect().width/50; probe.remove();
+    const gut = c.querySelector('.no').getBoundingClientRect().width;
+    fit = Math.floor((c.clientWidth - gut - 12)/ch);
+  }
+  const over = lines.filter(l=>l.length>fit).length;
+  bar.innerHTML =
+    '<div class="grp"><button data-act="v" data-d="-1" aria-label="Previous variant">←</button><span class="lab">'+S.v+' — '+VARIANTS[S.v]+'</span><button data-act="v" data-d="1" aria-label="Next variant">→</button></div>'
+   +'<div class="grp"><button data-act="ex" data-d="-1">‹</button><span class="lab">ex '+(S.ex+1)+'/'+EX.length+'</span><button data-act="ex" data-d="1">›</button></div>'
+   +'<div class="grp"><button data-act="fs" data-d="-1">A−</button><span class="lab">'+S.fs+'px</span><button data-act="fs" data-d="1">A+</button></div>'
+   +'<div class="grp"><button data-act="wrap" class="'+(S.wrap?'on':'')+'">wrap</button>'+(canFrame?'<button data-act="frames" class="'+(S.frames?'on':'')+'">3 widths</button>':'')+'</div>'
+   +'<div class="stat">'+e.flavor+' · '+lines.length+' lines · longest '+maxc+' cols · '+(fit==='—'?'':'fits '+fit+' cols → '+over+' line(s) '+(S.wrap?'wrap':'scroll')+' · ')+innerWidth+'px wide</div>';
+}
+function renderFrames(){
+  const src = w => '?frame=1&variant='+S.v+'&ex='+S.ex+'&fs='+S.fs+'&wrap='+(S.wrap?1:0);
+  frames.innerHTML = [[375,667,'phone 375'],[768,700,'tablet 768'],[1180,700,'desktop 1180']].map(([w,h,l])=>'<figure><figcaption>'+l+'</figcaption><iframe title="'+l+'" width="'+w+'" height="'+h+'" src="'+src()+'"></iframe></figure>').join('');
+}
+function syncURL(){
+  if(S.inFrame) return;
+  try{ history.replaceState(null,'','?variant='+S.v+'&ex='+S.ex+'&fs='+S.fs+'&wrap='+(S.wrap?1:0)+(S.frames?'&frames=1':'')); }catch(_){}
+}
+function tick(){
+  const e = ex(), t = elapsed(), over = t > e.budget, p = Math.min(100, t/e.budget*100);
+  const tb = app.querySelector('[data-tbar]'); if(tb){ tb.classList.toggle('over',over); tb.firstChild.style.width = p+'%'; }
+  const r = app.querySelector('[data-ring]'); if(r){ r.classList.toggle('over',over); r.style.setProperty('--p',p); }
+  const c = app.querySelector('[data-clock]'); if(c){ c.classList.toggle('over',over); c.textContent = mmss(t)+' / '+mmss(e.budget); }
+}
+setInterval(()=>{ if(!S.done) tick(); }, 500);
+
+function reset(){ Object.assign(S,{sel:null,done:false,t0:Date.now(),took:0,sheet:false,pane:'code',primer:false,toast:''}); }
+function check(){ if(S.sel==null||S.done) return; S.took=(Date.now()-S.t0)/1000; S.done=true; if(S.v==='C'&&innerWidth<900) S.pane='ans'; }
+const cycle = (arr,cur,d) => arr[(arr.indexOf(cur)+d+arr.length)%arr.length];
+
+document.addEventListener('click', ev=>{
+  const a = ev.target.closest('[data-act]'), line = ev.target.closest('.pickable .ln');
+  if(!a && line){
+    if(S.v==='B' && !ev.target.closest('.no')) return;        // B: gutter only
+    S.sel = +line.dataset.line; return render();
+  }
+  if(!a) return;
+  const d = +a.dataset.d;
+  switch(a.dataset.act){
+    case 'pick': if(S.done) return; S.sel=+a.dataset.i; if(S.v==='B') check(); break;   // B: one tap commits
+    case 'check': check(); break;
+    case 'nudge': S.sel = Math.min(ex().code.split('\n').length, Math.max(1, S.sel+d)); break;
+    case 'next': S.ex=(S.ex+1)%EX.length; reset(); break;
+    case 'sheet': S.sheet=!S.sheet; break;
+    case 'pane': S.pane=a.dataset.p; break;
+    case 'primer': S.primer=true; break;
+    case 'primer-close': if(ev.target!==a && !ev.target.closest('.btn')) return; S.primer=false; break;
+    case 'explain': {
+      const prompt = 'Explain this Rust exercise ('+ex().topic+'): '+ex().prompt+'\n\n'+ex().code;
+      try{ navigator.clipboard.writeText(prompt).catch(()=>{}); }catch(_){}
+      S.toast = 'Prompt copied ('+prompt.length+' chars). The real app would now open claude.ai, or the share sheet on mobile.';
+      setTimeout(()=>{ S.toast=''; render(); }, 3500); break; }
+    case 'v': S.v = cycle(Object.keys(VARIANTS),S.v,d); break;
+    case 'ex': S.ex=(S.ex+d+EX.length)%EX.length; reset(); break;
+    case 'fs': S.fs=Math.min(20,Math.max(10,S.fs+d)); break;
+    case 'wrap': S.wrap=!S.wrap; break;
+    case 'frames': S.frames=!S.frames; break;
+  }
+  render();
+});
+document.addEventListener('keydown', ev=>{
+  if(ev.target.closest('input,textarea,[contenteditable]')) return;
+  if(ev.key==='ArrowLeft'||ev.key==='ArrowRight'){ S.v = cycle(Object.keys(VARIANTS),S.v,ev.key==='ArrowLeft'?-1:1); render(); }
+});
+addEventListener('resize', renderBar);
+render();
+if(document.fonts && document.fonts.ready) document.fonts.ready.then(renderBar);
+</script>
+</body>
+</html>

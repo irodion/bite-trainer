@@ -1,4 +1,4 @@
-// Pack format v1 — see .scratch/bite-trainer/issues/05-pack-format-prototype.md
+// Pack format v1. A complete example is public/packs/rust; `pnpm verify-pack` checks one.
 
 export interface PackManifest {
   formatVersion: 1
