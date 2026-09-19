@@ -87,3 +87,30 @@ test('a Pack never opened before cannot be opened offline', async () => {
   offline.state.online = false
   await expect(openPack(SOURCE, { fetchFn: offline.fetchFn, store: memoryStore() })).rejects.toThrow('Failed to fetch')
 })
+
+/** A store that already holds a record the parser would never have accepted (older build, other format, corruption). */
+async function poisonedStore(): Promise<PackStore> {
+  const store = memoryStore()
+  const good = (await openPack(SOURCE, { fetchFn: host().fetchFn, store: memoryStore() })).pack
+  const bad = structuredClone(good) as any
+  bad.topics[0].exercises.find((e: any) => e.type === 'choice').options.push(null)
+  await store.put(bad)
+  return store
+}
+
+test('a stored Pack that no longer parses is treated as missing: it is fetched again and replaced', async () => {
+  const store = await poisonedStore()
+  const { pack, update } = await openPack(SOURCE, { fetchFn: host().fetchFn, store })
+
+  expect(await update).toBe('fresh')
+  expect(pack.topics[0].exercises.every((e) => e.type !== 'choice' || e.options.every((o) => o !== null))).toBe(true)
+  expect((await store.get(SOURCE))?.topics).toEqual(pack.topics)
+})
+
+test('a stored Pack that no longer parses is never served, even offline', async () => {
+  const offline = host()
+  offline.state.online = false
+  await expect(openPack(SOURCE, { fetchFn: offline.fetchFn, store: await poisonedStore() })).rejects.toThrow(
+    'Failed to fetch',
+  )
+})

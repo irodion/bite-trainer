@@ -1,5 +1,5 @@
-import type { Pack, PackManifest, Topic } from './types'
-import { validatePack } from './validate'
+import { parseManifest, parseTopics } from './parsePack.ts'
+import type { Pack } from './types'
 
 /** A fetched Pack failed validation; `problems` is Learner-readable. */
 export class InvalidPackError extends Error {
@@ -11,11 +11,15 @@ export class InvalidPackError extends Error {
 /** Fetch and validate a whole Pack (manifest + every Topic file) from its Pack Source. */
 export async function loadPack(source: string, fetchFn: typeof fetch = fetch): Promise<Pack> {
   const manifestUrl = new URL(source, globalThis.location?.href)
-  const manifest = (await getJson(manifestUrl, fetchFn)) as PackManifest
-  const files = Array.isArray(manifest?.topics) ? manifest.topics : []
-  const topics = (await Promise.all(files.map((t) => getJson(new URL(t.file, manifestUrl), fetchFn)))) as Topic[]
-  const problems = validatePack(manifest, topics)
-  if (problems.length) throw new InvalidPackError(problems)
+  // The manifest is parsed BEFORE its Topic file list is trusted enough to fetch from.
+  const m = parseManifest(await getJson(manifestUrl, fetchFn))
+  if (!m.ok) throw new InvalidPackError(m.problems)
+  const { manifest } = m
+
+  const files = await Promise.all(manifest.topics.map((t) => getJson(new URL(t.file, manifestUrl), fetchFn)))
+  const t = parseTopics(manifest, files)
+  if (!t.ok) throw new InvalidPackError(t.problems)
+  const { topics } = t
   return { source, manifest, topics }
 }
 

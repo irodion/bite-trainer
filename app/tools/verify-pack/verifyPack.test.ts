@@ -14,7 +14,7 @@ async function packOnDisk(exercise: object): Promise<string> {
     version: '1',
     title: 'T',
     language: { id: 'rust', name: 'Rust', highlight: 'rust' },
-    flavors: {},
+    flavors: { 'predict-output': { label: 'Prints?' } },
     topics: [{ id: 'basics', title: 'Basics', file: 'topics/basics.json' }],
   }
   await writeFile(join(dir, 'pack.json'), JSON.stringify(manifest))
@@ -33,7 +33,10 @@ const exercise = {
   prompt: 'Prints?',
   code: ['fn main() { println!("{}", 1 + 1); }'],
   verify: { stdout: '2' },
-  options: [{ id: 'a', text: '`2`', correct: true, rationale: '' }],
+  options: [
+    { id: 'a', text: '`2`', correct: true, rationale: 'It adds.' },
+    { id: 'b', text: '`11`', rationale: 'Not concatenation.' },
+  ],
 }
 const prints = (stdout: string): Toolchain & { runs: number } => ({
   runs: 0,
@@ -73,8 +76,8 @@ test('options are shuffled by the app, so an option that refers to another by po
   const positional = {
     ...exercise,
     options: [
-      { id: 'a', text: '`2`', correct: true, rationale: '' },
-      { id: 'b', text: 'None of the above', rationale: '' },
+      { id: 'a', text: '`2`', correct: true, rationale: 'It adds.' },
+      { id: 'b', text: 'None of the above', rationale: 'Wrong.' },
       { id: 'c', text: '`3`', rationale: 'Same mistake as option A.' },
     ],
   }

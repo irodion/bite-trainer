@@ -5,6 +5,8 @@
     "target": "es2023",
     "module": "esnext",
     "types": ["svelte", "vite/client", "node"],
+    /* core/ is shared with the Node-run author tools, which need explicit .ts import paths */
+    "allowImportingTsExtensions": true,
     "allowArbitraryExtensions": true,
     "noEmit": true,
     /**

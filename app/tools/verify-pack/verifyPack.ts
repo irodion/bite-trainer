@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
-import type { Exercise, PackManifest, Topic } from '../../src/core/types.ts'
-import { validatePack } from '../../src/core/validate.ts'
+import { parseManifest, parseTopics } from '../../src/core/parsePack.ts'
+import type { Exercise } from '../../src/core/types.ts'
 import { verifyExercise, type Toolchain } from './verifyExercise.ts'
 
 /** Hard authoring limits from the Exercise screen prototype: what fits a phone without wrapping. */
@@ -17,13 +17,12 @@ const readJson = async (path: string) => JSON.parse(await readFile(path, 'utf8')
 
 /** Author-time check of a Pack on disk: structure, authoring limits, then every Exercise's claim against the toolchain. */
 export async function verifyPack(manifestPath: string, toolchain: Toolchain): Promise<Report> {
-  const manifest = (await readJson(manifestPath)) as PackManifest
-  const files = Array.isArray(manifest?.topics) ? manifest.topics : []
-  const topics = (await Promise.all(files.map((t) => readJson(join(dirname(manifestPath), t.file))))) as Topic[]
-
-  const structural = validatePack(manifest, topics)
-  const exercises = structural.length ? [] : topics.flatMap((t) => t.exercises)
-  if (structural.length) return { exercises: 0, problems: structural }
+  const m = parseManifest(await readJson(manifestPath))
+  if (!m.ok) return { exercises: 0, problems: m.problems }
+  const files = await Promise.all(m.manifest.topics.map((t) => readJson(join(dirname(manifestPath), t.file))))
+  const t = parseTopics(m.manifest, files)
+  if (!t.ok) return { exercises: 0, problems: t.problems }
+  const exercises = t.topics.flatMap((topic) => topic.exercises)
 
   const problems = exercises.flatMap(limitProblems)
   // Compile a few at a time: rustc is CPU-bound and a Pack has hundreds of snippets.
