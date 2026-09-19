@@ -6,6 +6,8 @@ import type { Pack } from './types'
 const SOURCE = 'https://packs.example/rust/pack.json'
 const file = (p: string) => JSON.parse(readFileSync(new URL(`../../public/packs/rust/${p}`, import.meta.url), 'utf8'))
 
+const SHIPPED = file('pack.json') as { version: string; topics: { file: string }[] }
+
 /** A fake Pack host: serves the official Rust Pack, optionally edited, or is unreachable. */
 function host(edit: (path: string, json: any) => any = (_, j) => j) {
   const state = { online: true, requests: 0 }
@@ -26,18 +28,18 @@ function memoryStore(): PackStore {
 test('a Pack opened once can be opened again with the network down', async () => {
   const { state, fetchFn } = host()
   const store = memoryStore()
-  await openPack(SOURCE, { fetchFn, store })
+  const online = await openPack(SOURCE, { fetchFn, store })
 
   state.online = false
-  const { pack } = await openPack(SOURCE, { fetchFn, store })
+  const offline = await openPack(SOURCE, { fetchFn, store })
 
-  expect(pack.manifest.id).toBe('rust-official')
-  expect(pack.topics.map((t) => t.id)).toEqual(['iterators', 'ownership', 'error-handling'])
+  expect(offline.pack.topics.length).toBeGreaterThan(0)
+  expect(offline.pack).toEqual(online.pack)
 })
 
 test('a Pack with problems is refused and never stored', async () => {
   const { fetchFn } = host((path, json) =>
-    path === 'topics/iterators.json' ? { ...json, exercises: [{ id: 'x', type: 'essay' }] } : json,
+    path === SHIPPED.topics[0].file ? { ...json, exercises: [{ id: 'x', type: 'essay' }] } : json,
   )
   const store = memoryStore()
 
@@ -52,14 +54,14 @@ test('an updated Pack is stored in the background but only takes effect the next
   const store = memoryStore()
   await openPack(SOURCE, { fetchFn: host().fetchFn, store })
 
-  const next = host(bumped('0.2.0'))
+  const next = host(bumped('99.0.0'))
   const opened = await openPack(SOURCE, { fetchFn: next.fetchFn, store })
-  expect(opened.pack.manifest.version).toBe('0.1.0')
+  expect(opened.pack.manifest.version).toBe(SHIPPED.version)
   expect(await opened.update).toBe('updated')
-  expect(opened.pack.manifest.version).toBe('0.1.0')
+  expect(opened.pack.manifest.version).toBe(SHIPPED.version)
 
   const later = await openPack(SOURCE, { fetchFn: next.fetchFn, store })
-  expect(later.pack.manifest.title).toBe('Rust 0.2.0')
+  expect(later.pack.manifest.title).toBe('Rust 99.0.0')
   expect(await later.update).toBe('unchanged')
 })
 
@@ -68,7 +70,7 @@ test('a broken update never replaces the good Pack already stored', async () => 
   await openPack(SOURCE, { fetchFn: host().fetchFn, store })
 
   const broken = host((path, json) =>
-    path === 'pack.json' ? { ...json, version: '0.3.0' } : { ...json, exercises: 'gone' },
+    path === 'pack.json' ? { ...json, version: '98.0.0' } : { ...json, exercises: 'gone' },
   )
   const opened = await openPack(SOURCE, { fetchFn: broken.fetchFn, store })
   expect(await opened.update).toBe('invalid')
@@ -76,7 +78,7 @@ test('a broken update never replaces the good Pack already stored', async () => 
   const offline = host()
   offline.state.online = false
   const later = await openPack(SOURCE, { fetchFn: offline.fetchFn, store })
-  expect(later.pack.manifest.version).toBe('0.1.0')
+  expect(later.pack.manifest.version).toBe(SHIPPED.version)
   expect(await later.update).toBe('offline')
 })
 

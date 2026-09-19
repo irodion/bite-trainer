@@ -2,7 +2,327 @@
   "$schema": "../../schema/topic.schema.json",
   "id": "error-handling",
   "title": "Error handling",
+  "primer": {
+    "title": "Errors are values; ? passes them up",
+    "body": [
+      "A fallible function returns `Result<T, E>`. `expr?` unwraps `Ok(v)` to `v`, or **returns** `Err(From::from(e))` from the enclosing function.",
+      "Two consequences worth reading for: `?` only works inside a function that itself returns `Result` (or `Option`), and the error must be convertible with `From` into that function's error type.",
+      "When no `From` impl exists, convert explicitly first:",
+      "```\nlet n = s.parse::<i64>().map_err(MyError::Parse)?;\n```",
+      "`Box<dyn Error>` accepts any error type, because the standard library implements `From<E> for Box<dyn Error>` for every `E: Error`."
+    ]
+  },
   "exercises": [
+    {
+      "id": "question-mark-propagates",
+      "type": "choice",
+      "flavor": "predict-output",
+      "timeBudget": 75,
+      "source": "rustlings: errors2",
+      "prompt": "What does this program print?",
+      "code": [
+        "use std::num::ParseIntError;",
+        "",
+        "fn total_cost(qty: &str) -> Result<i32, ParseIntError> {",
+        "    let processing_fee = 1;",
+        "    let cost_per_item = 5;",
+        "    let qty = qty.parse::<i32>()?;",
+        "",
+        "    Ok(qty * cost_per_item + processing_fee)",
+        "}",
+        "",
+        "fn main() {",
+        "    println!(\"{:?}\", total_cost(\"34\"));",
+        "",
+        "    match total_cost(\"beep boop\") {",
+        "        Ok(cost) => println!(\"cost {cost}\"),",
+        "        Err(e) => println!(\"error: {e}\"),",
+        "    }",
+        "}"
+      ],
+      "verify": {
+        "stdout": "Ok(171)\nerror: invalid digit found in string"
+      },
+      "options": [
+        {
+          "id": "a",
+          "code": [
+            "Ok(171)",
+            "error: invalid digit found in string"
+          ],
+          "correct": true,
+          "rationale": "`?` returns the `ParseIntError` to the caller instead of panicking. `{:?}` on a `Result` prints the `Ok(…)` wrapper too."
+        },
+        {
+          "id": "b",
+          "code": [
+            "171",
+            "error: invalid digit found in string"
+          ],
+          "rationale": "`total_cost` returns a `Result`, and Debug-printing it shows the variant: `Ok(171)`."
+        },
+        {
+          "id": "c",
+          "code": [
+            "Ok(171)",
+            "cost 1"
+          ],
+          "rationale": "A failed `parse` does not yield 0. `?` leaves the function at line 6, so line 8 never runs."
+        },
+        {
+          "id": "d",
+          "text": "`Ok(171)`, then it panics on line 6",
+          "rationale": "`?` is the opposite of `unwrap`: it hands the error back as a value."
+        }
+      ]
+    },
+    {
+      "id": "question-mark-in-main",
+      "type": "choice",
+      "flavor": "predict-error",
+      "timeBudget": 60,
+      "source": "rustlings: errors3",
+      "prompt": "This does not compile. What does the compiler object to?",
+      "code": [
+        "use std::num::ParseIntError;",
+        "",
+        "fn total_cost(qty: &str) -> Result<i32, ParseIntError> {",
+        "    let qty = qty.parse::<i32>()?;",
+        "    Ok(qty * 5 + 1)",
+        "}",
+        "",
+        "fn main() {",
+        "    let mut tokens = 100;",
+        "    let cost = total_cost(\"8\")?;",
+        "",
+        "    if cost > tokens {",
+        "        println!(\"You can't afford that many!\");",
+        "    } else {",
+        "        tokens -= cost;",
+        "        println!(\"You now have {tokens} tokens.\");",
+        "    }",
+        "}"
+      ],
+      "verify": {
+        "error": "E0277",
+        "line": 10
+      },
+      "options": [
+        {
+          "id": "a",
+          "text": "E0277: `?` on line 10 needs a function that returns `Result` or `Option`, but `main` returns `()`",
+          "correct": true,
+          "rationale": "`?` may have to return an `Err`, and `main` has no way to return one. `fn main() -> Result<(), ParseIntError>` fixes it."
+        },
+        {
+          "id": "b",
+          "text": "E0277: `?` on line 4 cannot be used with `parse`",
+          "rationale": "Line 4 is fine: `total_cost` returns `Result<i32, ParseIntError>`, exactly what `parse::<i32>()` can fail with."
+        },
+        {
+          "id": "c",
+          "text": "E0308: `cost` is a `Result`, which cannot be compared with `tokens`",
+          "rationale": "If line 10 compiled, `?` would already have unwrapped it to an `i32`."
+        },
+        {
+          "id": "d",
+          "text": "It compiles and prints `You now have 59 tokens.`",
+          "rationale": "That is what it would print once `main` returned a `Result`. As written, line 10 is rejected."
+        }
+      ]
+    },
+    {
+      "id": "match-guards-order",
+      "type": "choice",
+      "flavor": "predict-output",
+      "timeBudget": 90,
+      "source": "rustlings: errors4",
+      "prompt": "What does this program print?",
+      "code": [
+        "#[derive(Debug)]",
+        "enum CreationError {",
+        "    Negative,",
+        "    Zero,",
+        "}",
+        "",
+        "#[derive(Debug)]",
+        "struct Positive(u64);",
+        "",
+        "impl Positive {",
+        "    fn new(value: i64) -> Result<Self, CreationError> {",
+        "        match value {",
+        "            x if x < 0 => Err(CreationError::Negative),",
+        "            0 => Err(CreationError::Zero),",
+        "            x => Ok(Self(x as u64)),",
+        "        }",
+        "    }",
+        "}",
+        "",
+        "fn main() {",
+        "    for v in [10, 0, -3] {",
+        "        println!(\"{:?}\", Positive::new(v));",
+        "    }",
+        "}"
+      ],
+      "verify": {
+        "stdout": "Ok(Positive(10))\nErr(Zero)\nErr(Negative)"
+      },
+      "options": [
+        {
+          "id": "a",
+          "code": [
+            "Ok(Positive(10))",
+            "Err(Zero)",
+            "Err(Negative)"
+          ],
+          "correct": true,
+          "rationale": "Arms are tried top to bottom. The guard catches -3, the literal `0` catches zero, and only then does the catch-all `x` run."
+        },
+        {
+          "id": "b",
+          "code": [
+            "Ok(Positive(10))",
+            "Err(Zero)",
+            "Ok(Positive(18446744073709551613))"
+          ],
+          "rationale": "That is what `-3 as u64` would give — but the guarded first arm catches negatives before the cast is reached."
+        },
+        {
+          "id": "c",
+          "code": [
+            "Ok(10)",
+            "Err(Zero)",
+            "Err(Negative)"
+          ],
+          "rationale": "Derived `Debug` prints a tuple struct with its name: `Positive(10)`."
+        },
+        {
+          "id": "d",
+          "text": "It does not compile: the arms `x if x < 0` and `x` overlap",
+          "rationale": "Overlapping patterns are allowed; the first matching arm wins. Only *unreachable* arms get a warning."
+        }
+      ]
+    },
+    {
+      "id": "box-dyn-error",
+      "type": "choice",
+      "flavor": "predict-output",
+      "timeBudget": 90,
+      "source": "rustlings: errors5",
+      "prompt": "What does this program print?",
+      "code": [
+        "use std::error::Error;",
+        "use std::fmt;",
+        "",
+        "#[derive(Debug)]",
+        "struct TooSmall(i64);",
+        "",
+        "impl fmt::Display for TooSmall {",
+        "    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {",
+        "        write!(f, \"{} is too small\", self.0)",
+        "    }",
+        "}",
+        "impl Error for TooSmall {}",
+        "",
+        "fn check(input: &str) -> Result<i64, Box<dyn Error>> {",
+        "    let n: i64 = input.parse()?;",
+        "    if n < 10 {",
+        "        return Err(Box::new(TooSmall(n)));",
+        "    }",
+        "    Ok(n)",
+        "}",
+        "",
+        "fn main() {",
+        "    for input in [\"42\", \"7\", \"x\"] {",
+        "        match check(input) {",
+        "            Ok(n) => println!(\"ok {n}\"),",
+        "            Err(e) => println!(\"err: {e}\"),",
+        "        }",
+        "    }",
+        "}"
+      ],
+      "verify": {
+        "stdout": "ok 42\nerr: 7 is too small\nerr: invalid digit found in string"
+      },
+      "options": [
+        {
+          "id": "a",
+          "code": [
+            "ok 42",
+            "err: 7 is too small",
+            "err: invalid digit found in string"
+          ],
+          "correct": true,
+          "rationale": "`Box<dyn Error>` can hold both error types. `?` boxes the `ParseIntError` automatically; `{e}` uses each error's own `Display`."
+        },
+        {
+          "id": "b",
+          "text": "It does not compile: `?` cannot convert `ParseIntError` into `Box<dyn Error>`",
+          "rationale": "It can: the standard library implements `From<E> for Box<dyn Error>` for every `E: Error`. (For a `String` error type this *would* fail.)"
+        },
+        {
+          "id": "c",
+          "code": [
+            "ok 42",
+            "err: TooSmall(7)",
+            "err: invalid digit found in string"
+          ],
+          "rationale": "`{e}` uses `Display`, which is the hand-written `fmt`. `TooSmall(7)` is what `{e:?}` would print."
+        },
+        {
+          "id": "d",
+          "code": [
+            "ok 42",
+            "ok 7",
+            "err: invalid digit found in string"
+          ],
+          "rationale": "7 parses fine, but then fails the `n < 10` check on line 16."
+        }
+      ]
+    },
+    {
+      "id": "question-mark-needs-from",
+      "type": "line-select",
+      "flavor": "find-the-line",
+      "timeBudget": 75,
+      "source": "rustlings: errors6",
+      "prompt": "Tap the line the compiler rejects.",
+      "code": [
+        "use std::num::ParseIntError;",
+        "",
+        "#[derive(Debug)]",
+        "enum ParseError {",
+        "    Creation(String),",
+        "    ParseInt(ParseIntError),",
+        "}",
+        "",
+        "fn parse_positive(s: &str) -> Result<u64, ParseError> {",
+        "    let x = s.parse::<i64>()?;",
+        "    if x <= 0 {",
+        "        let why = format!(\"{x} is not positive\");",
+        "        return Err(ParseError::Creation(why));",
+        "    }",
+        "    Ok(x as u64)",
+        "}",
+        "",
+        "fn main() {",
+        "    println!(\"{:?}\", parse_positive(\"-5\"));",
+        "}"
+      ],
+      "verify": {
+        "error": "E0277"
+      },
+      "correctLines": [
+        10
+      ],
+      "rationale": "On line 10 `?` must turn a `ParseIntError` into a `ParseError`, and no `From<ParseIntError> for ParseError` exists (E0277). `.map_err(ParseError::ParseInt)?` would convert it explicitly.",
+      "lineRationales": {
+        "6": "Having a variant that *can* hold a `ParseIntError` is not enough — `?` only uses `From`, and nobody implemented it.",
+        "13": "Building and returning your own variant directly needs no conversion at all.",
+        "9": "The signature is fine. It is what obliges line 10 to produce a `ParseError`."
+      },
+      "fallbackRationale": "That line compiles. Look for a `?` whose error type differs from the function's error type."
+    },
     {
       "id": "parse-port-question-mark",
       "type": "choice",
@@ -62,7 +382,10 @@
           ],
           "rationale": "Turns a recoverable error into a panic."
         }
-      ]
+      ],
+      "verify": {
+        "compiles": true
+      }
     }
   ]
 }

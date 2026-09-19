@@ -14,7 +14,8 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "verify": "pnpm format:check && pnpm lint && pnpm check && pnpm test",
-    "prepare": "git config core.hooksPath .githooks"
+    "prepare": "git config core.hooksPath .githooks",
+    "verify-pack": "node tools/verify-pack/cli.ts"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

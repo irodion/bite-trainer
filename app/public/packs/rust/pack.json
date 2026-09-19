@@ -1,10 +1,10 @@
 {
   "$schema": "../schema/pack.schema.json",
   "formatVersion": 1,
-  "id": "rust-official",
-  "version": "0.1.0",
+  "id": "io.github.irodion.rust",
+  "version": "0.2.0",
   "title": "Rust",
-  "description": "Read real Rust: ownership, borrowing, iterators, error handling.",
+  "description": "Read real Rust: ownership, borrowing, lifetimes, traits, iterators and error handling. Adapted from rustlings.",
   "language": {
     "id": "rust",
     "name": "Rust",
@@ -13,7 +13,7 @@
   },
   "license": "MIT",
   "attribution": [
-    "Topic list adapted from rustlings (MIT), https://github.com/rust-lang/rustlings"
+    "Exercises adapted from rustlings (MIT), Copyright (c) 2016 Carol (Nichols || Goulding), https://github.com/rust-lang/rustlings — each Exercise names its source exercise in `source`."
   ],
   "flavors": {
     "predict-output": {
@@ -31,9 +31,9 @@
   },
   "topics": [
     {
-      "id": "iterators",
-      "title": "Iterators",
-      "file": "topics/iterators.json"
+      "id": "variables",
+      "title": "Variables & types",
+      "file": "topics/variables.json"
     },
     {
       "id": "ownership",
@@ -41,9 +41,44 @@
       "file": "topics/ownership.json"
     },
     {
+      "id": "strings-collections",
+      "title": "Strings & collections",
+      "file": "topics/strings-collections.json"
+    },
+    {
+      "id": "enums-options",
+      "title": "Enums, Option & matching",
+      "file": "topics/enums-options.json"
+    },
+    {
       "id": "error-handling",
       "title": "Error handling",
       "file": "topics/error-handling.json"
+    },
+    {
+      "id": "traits-generics",
+      "title": "Traits & generics",
+      "file": "topics/traits-generics.json"
+    },
+    {
+      "id": "lifetimes",
+      "title": "Lifetimes",
+      "file": "topics/lifetimes.json"
+    },
+    {
+      "id": "iterators",
+      "title": "Iterators & closures",
+      "file": "topics/iterators.json"
+    },
+    {
+      "id": "smart-pointers",
+      "title": "Smart pointers",
+      "file": "topics/smart-pointers.json"
+    },
+    {
+      "id": "conversions",
+      "title": "Conversions",
+      "file": "topics/conversions.json"
     }
   ]
 }

@@ -1,0 +1,226 @@
+{
+  "$schema": "../../schema/topic.schema.json",
+  "id": "variables",
+  "title": "Variables & types",
+  "primer": {
+    "title": "Immutable unless you say otherwise",
+    "body": [
+      "`let` bindings are immutable by default; `let mut` opts in to reassignment. The compiler also refuses to read a binding that *might* not have been assigned yet.",
+      "**Shadowing** is different from mutation: a second `let` with the same name creates a brand-new binding, which may even have another type. The old value is simply no longer reachable by that name.",
+      "A slice `&a[1..4]` borrows elements 1, 2 and 3 — the end of a range is exclusive. Tuples are read by position (`t.1`) or taken apart with a pattern:",
+      "```\nlet (name, age) = cat;\n```"
+    ]
+  },
+  "exercises": [
+    {
+      "id": "shadowed-number",
+      "type": "choice",
+      "flavor": "predict-output",
+      "timeBudget": 45,
+      "source": "rustlings: variables5",
+      "prompt": "What does this program print?",
+      "code": [
+        "fn main() {",
+        "    let number = \"T-H-R-E-E\";",
+        "    println!(\"Spell a number: {number}\");",
+        "",
+        "    let number = 3;",
+        "    println!(\"Number plus two is: {}\", number + 2);",
+        "}"
+      ],
+      "verify": {
+        "stdout": "Spell a number: T-H-R-E-E\nNumber plus two is: 5"
+      },
+      "options": [
+        {
+          "id": "a",
+          "code": [
+            "Spell a number: T-H-R-E-E",
+            "Number plus two is: 5"
+          ],
+          "correct": true,
+          "rationale": "The second `let` shadows the first: from line 5 on, `number` is a new `i32` binding, so `number + 2` is 5."
+        },
+        {
+          "id": "b",
+          "text": "It does not compile: `number` cannot change from `&str` to an integer",
+          "rationale": "That would be true for assignment to a `mut` variable. A new `let` creates a new binding, and it is free to have another type."
+        },
+        {
+          "id": "c",
+          "code": [
+            "Spell a number: T-H-R-E-E",
+            "Number plus two is: 32"
+          ],
+          "rationale": "Rust never concatenates a number onto a string implicitly. By line 6 `number` is the integer 3."
+        },
+        {
+          "id": "d",
+          "text": "It does not compile: `number` is not declared `mut`",
+          "rationale": "`mut` is only needed to assign to an existing binding. Line 5 declares a new one."
+        }
+      ]
+    },
+    {
+      "id": "maybe-uninitialized",
+      "type": "choice",
+      "flavor": "predict-error",
+      "timeBudget": 60,
+      "source": "rustlings: variables2, variables3",
+      "prompt": "This does not compile. What does the compiler object to?",
+      "code": [
+        "fn main() {",
+        "    let x: i32;",
+        "    let ready = std::env::args().count() > 0;",
+        "",
+        "    if ready {",
+        "        x = 10;",
+        "    }",
+        "",
+        "    println!(\"Number {x}\");",
+        "}"
+      ],
+      "verify": {
+        "error": "E0381",
+        "line": 9
+      },
+      "options": [
+        {
+          "id": "a",
+          "text": "E0381: `x` is possibly uninitialized when it is read on line 9",
+          "correct": true,
+          "rationale": "The compiler checks every path to line 9. On the path where `ready` is false, `x` was never assigned — it does not matter that this cannot happen at runtime."
+        },
+        {
+          "id": "b",
+          "text": "E0384: `x` is assigned on line 6 but is not `mut`",
+          "rationale": "Declaring first and assigning once later is allowed without `mut`. Only a *second* assignment would need it."
+        },
+        {
+          "id": "c",
+          "text": "E0282: the type of `x` cannot be inferred",
+          "rationale": "The type is written out: `let x: i32`."
+        },
+        {
+          "id": "d",
+          "text": "E0308: `if` without `else` must produce `()`",
+          "rationale": "It does produce `()` here: the body is a statement ending in `;`."
+        }
+      ]
+    },
+    {
+      "id": "assign-twice",
+      "type": "line-select",
+      "flavor": "find-the-line",
+      "timeBudget": 45,
+      "source": "rustlings: variables4",
+      "prompt": "Tap the line the compiler rejects.",
+      "code": [
+        "fn main() {",
+        "    let x = 3;",
+        "    println!(\"Number {x}\");",
+        "",
+        "    x = 5;",
+        "    println!(\"Number {x}\");",
+        "}"
+      ],
+      "verify": {
+        "error": "E0384"
+      },
+      "correctLines": [
+        5
+      ],
+      "rationale": "Line 5 assigns a second time to `x`, which was declared without `mut` (E0384).",
+      "lineRationales": {
+        "2": "Declaring an immutable binding is fine by itself. The compiler *suggests* adding `mut` here, but it reports the error where the second assignment happens.",
+        "6": "Reading `x` is always allowed. The problem is the write just above."
+      },
+      "fallbackRationale": "That line compiles. Look for a write to a binding that was not declared `mut`."
+    },
+    {
+      "id": "slice-of-array",
+      "type": "choice",
+      "flavor": "predict-output",
+      "timeBudget": 40,
+      "source": "rustlings: primitive_types4",
+      "prompt": "What does this program print?",
+      "code": [
+        "fn main() {",
+        "    let a = [1, 2, 3, 4, 5];",
+        "    let nice_slice = &a[1..4];",
+        "",
+        "    println!(\"{:?} {}\", nice_slice, nice_slice.len());",
+        "}"
+      ],
+      "verify": {
+        "stdout": "[2, 3, 4] 3"
+      },
+      "options": [
+        {
+          "id": "a",
+          "text": "`[2, 3, 4] 3`",
+          "correct": true,
+          "rationale": "Indices start at 0 and the end of `1..4` is exclusive: elements 1, 2 and 3."
+        },
+        {
+          "id": "b",
+          "text": "`[2, 3, 4, 5] 4`",
+          "rationale": "That would be `1..=4`. A plain `..` range excludes its end."
+        },
+        {
+          "id": "c",
+          "text": "`[1, 2, 3] 3`",
+          "rationale": "That would be `0..3`. Index 1 is the *second* element."
+        },
+        {
+          "id": "d",
+          "text": "`[1, 2, 3, 4] 4`",
+          "rationale": "That would be `0..4` — this reads the range as \"first to fourth element\"."
+        }
+      ]
+    },
+    {
+      "id": "tuple-destructure",
+      "type": "choice",
+      "flavor": "predict-output",
+      "timeBudget": 45,
+      "source": "rustlings: primitive_types5, primitive_types6",
+      "prompt": "What does this program print?",
+      "code": [
+        "fn main() {",
+        "    let cat = (\"Furry McFurson\", 3.5);",
+        "    let (name, age) = cat;",
+        "",
+        "    let numbers = (1, 2, 3);",
+        "    println!(\"{name} is {age}; second = {}\", numbers.1);",
+        "}"
+      ],
+      "verify": {
+        "stdout": "Furry McFurson is 3.5; second = 2"
+      },
+      "options": [
+        {
+          "id": "a",
+          "text": "`Furry McFurson is 3.5; second = 2`",
+          "correct": true,
+          "rationale": "The pattern `(name, age)` takes the tuple apart by position, and `.1` is the second field because tuple indices start at 0."
+        },
+        {
+          "id": "b",
+          "text": "`Furry McFurson is 3.5; second = 1`",
+          "rationale": "Tuple fields are numbered from 0, so `.1` is the second one."
+        },
+        {
+          "id": "c",
+          "text": "It does not compile: `cat` was moved on line 3",
+          "rationale": "`cat` is moved, but it is never used again, so nothing is wrong. (Here both fields are `Copy` anyway.)"
+        },
+        {
+          "id": "d",
+          "text": "`Furry McFurson is 3; second = 2`",
+          "rationale": "`{}` prints an `f64` with its fractional part: `3.5`."
+        }
+      ]
+    }
+  ]
+}

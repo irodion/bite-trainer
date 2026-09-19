@@ -1,0 +1,269 @@
+{
+  "$schema": "../../schema/topic.schema.json",
+  "id": "enums-options",
+  "title": "Enums, Option & matching",
+  "primer": {
+    "title": "A value that is one of several shapes",
+    "body": [
+      "An `enum` value is exactly one of its variants, and a variant may carry data. `match` must cover every variant; patterns can take the data apart as they match.",
+      "`Option<T>` is an ordinary enum: `Some(T)` or `None`. There is no null, and an `Option<u16>` is **not** a `u16` — you must say what happens for `None` (`match`, `if let`, `unwrap_or`, `?`).",
+      "Matching **by value** moves data out of the matched value. `Some(p) => …` moves the inner value into `p`; match on a reference (`match &opt`) to only look.",
+      "Patterns nest: `while let Some(Some(n)) = stack.pop()` keeps looping only while `pop` returns an item *and* that item is itself `Some`."
+    ]
+  },
+  "exercises": [
+    {
+      "id": "message-state-machine",
+      "type": "choice",
+      "flavor": "predict-output",
+      "timeBudget": 90,
+      "source": "rustlings: enums3",
+      "prompt": "What does this program print?",
+      "code": [
+        "enum Message {",
+        "    Resize { width: u64, height: u64 },",
+        "    Move(u64, u64),",
+        "    Quit,",
+        "}",
+        "",
+        "fn main() {",
+        "    let (mut w, mut h, mut x, mut quit) = (0, 0, 0, false);",
+        "    let inbox = [",
+        "        Message::Resize { width: 10, height: 30 },",
+        "        Message::Move(10, 15),",
+        "        Message::Resize { width: 20, height: 5 },",
+        "        Message::Quit,",
+        "        Message::Move(99, 99),",
+        "    ];",
+        "    for message in inbox {",
+        "        if quit {",
+        "            break;",
+        "        }",
+        "        match message {",
+        "            Message::Resize { width, height } => {",
+        "                w = width;",
+        "                h = height;",
+        "            }",
+        "            Message::Move(new_x, _) => x = new_x,",
+        "            Message::Quit => quit = true,",
+        "        }",
+        "    }",
+        "    println!(\"{w}x{h} at {x}, quit: {quit}\");",
+        "}"
+      ],
+      "verify": {
+        "stdout": "20x5 at 10, quit: true"
+      },
+      "options": [
+        {
+          "id": "a",
+          "text": "`20x5 at 10, quit: true`",
+          "correct": true,
+          "rationale": "The second `Resize` overwrites the first. `Quit` sets the flag, so the loop breaks before the last `Move` is handled."
+        },
+        {
+          "id": "b",
+          "text": "`20x5 at 99, quit: true`",
+          "rationale": "`quit` is checked at the top of every iteration. After `Quit`, the loop breaks before `Move(99, 99)` is matched."
+        },
+        {
+          "id": "c",
+          "text": "`10x30 at 10, quit: true`",
+          "rationale": "Both `Resize` messages arrive before `Quit`, and the later one wins."
+        },
+        {
+          "id": "d",
+          "text": "`20x5 at 15, quit: true`",
+          "rationale": "`Move(new_x, _)` binds the *first* field. `_` ignores the second."
+        }
+      ]
+    },
+    {
+      "id": "option-unwrap-or",
+      "type": "choice",
+      "flavor": "predict-output",
+      "timeBudget": 75,
+      "source": "rustlings: options1",
+      "prompt": "What does this program print?",
+      "code": [
+        "fn maybe_ice_cream(hour_of_day: u16) -> Option<u16> {",
+        "    match hour_of_day {",
+        "        0..=21 => Some(5),",
+        "        22 | 23 => Some(0),",
+        "        _ => None,",
+        "    }",
+        "}",
+        "",
+        "fn main() {",
+        "    let scoops: u16 = [9, 22, 25]",
+        "        .iter()",
+        "        .map(|h| maybe_ice_cream(*h).unwrap_or(1))",
+        "        .sum();",
+        "",
+        "    println!(\"{scoops} {:?}\", maybe_ice_cream(23));",
+        "}"
+      ],
+      "verify": {
+        "stdout": "6 Some(0)"
+      },
+      "options": [
+        {
+          "id": "a",
+          "text": "`6 Some(0)`",
+          "correct": true,
+          "rationale": "Hour 9 gives `Some(5)`, 22 gives `Some(0)`, and 25 gives `None`, which `unwrap_or(1)` turns into 1: 5 + 0 + 1."
+        },
+        {
+          "id": "b",
+          "text": "`5 Some(0)`",
+          "rationale": "`unwrap_or(1)` supplies 1 for the `None` case, not 0."
+        },
+        {
+          "id": "c",
+          "text": "`6 None`",
+          "rationale": "`Some(0)` is not `None`. An `Option` holding zero is still `Some`."
+        },
+        {
+          "id": "d",
+          "text": "It panics: `unwrap` was called on `None`",
+          "rationale": "`unwrap_or` never panics — the argument is the fallback for `None`."
+        }
+      ]
+    },
+    {
+      "id": "option-is-not-a-number",
+      "type": "choice",
+      "flavor": "predict-error",
+      "timeBudget": 45,
+      "source": "rustlings: options1",
+      "prompt": "This does not compile. What does the compiler object to?",
+      "code": [
+        "fn maybe_ice_cream(hour_of_day: u16) -> Option<u16> {",
+        "    if hour_of_day < 22 { Some(5) } else { None }",
+        "}",
+        "",
+        "fn main() {",
+        "    let ice_creams = maybe_ice_cream(12);",
+        "    let total = ice_creams + 1;",
+        "",
+        "    println!(\"{total}\");",
+        "}"
+      ],
+      "verify": {
+        "error": "E0369",
+        "line": 7
+      },
+      "options": [
+        {
+          "id": "a",
+          "text": "E0369: `+` cannot be applied to `Option<u16>` on line 7",
+          "correct": true,
+          "rationale": "An `Option<u16>` is not a number. The value has to be taken out first, deciding what `None` means."
+        },
+        {
+          "id": "b",
+          "text": "It compiles and prints `6`",
+          "rationale": "Rust does not unwrap an `Option` implicitly, even when it is obviously `Some` at runtime."
+        },
+        {
+          "id": "c",
+          "text": "It compiles, and would panic only if the result were `None`",
+          "rationale": "There is no implicit unwrap to panic. The mismatch is caught at compile time."
+        },
+        {
+          "id": "d",
+          "text": "E0308: the `if` and `else` branches on line 2 have different types",
+          "rationale": "`Some(5)` and `None` are both `Option<u16>`; the return type settles `None`'s type."
+        }
+      ]
+    },
+    {
+      "id": "match-moves-out",
+      "type": "line-select",
+      "flavor": "find-the-line",
+      "timeBudget": 75,
+      "source": "rustlings: options3",
+      "prompt": "Tap the line the compiler rejects.",
+      "code": [
+        "#[derive(Debug)]",
+        "struct Point {",
+        "    x: i32,",
+        "    y: i32,",
+        "}",
+        "",
+        "fn main() {",
+        "    let optional_point = Some(Point { x: 100, y: 200 });",
+        "",
+        "    match optional_point {",
+        "        Some(p) => println!(\"At {},{}\", p.x, p.y),",
+        "        _ => panic!(\"No match!\"),",
+        "    }",
+        "",
+        "    println!(\"{optional_point:?}\");",
+        "}"
+      ],
+      "verify": {
+        "error": "E0382"
+      },
+      "correctLines": [
+        15
+      ],
+      "rationale": "Line 15 uses `optional_point` after the pattern `Some(p)` on line 11 moved the `Point` out of it (E0382, \"partially moved\").",
+      "lineRationales": {
+        "11": "Binding `p` by value moves the `Point` out of the `Option` — which is legal. The error is reported at the later use. Matching on `&optional_point` would only borrow.",
+        "10": "`match` by itself does not move anything; the patterns inside it decide that.",
+        "1": "`derive(Debug)` is what makes `{:?}` possible at all. `Point` is not `Copy`, which is why the move matters."
+      },
+      "fallbackRationale": "That line compiles. Look for where the `Point` is moved out, then for a later use of its owner."
+    },
+    {
+      "id": "while-let-nested",
+      "type": "choice",
+      "flavor": "predict-output",
+      "timeBudget": 75,
+      "source": "rustlings: options2",
+      "prompt": "What does this program print?",
+      "code": [
+        "fn main() {",
+        "    let mut stack: Vec<Option<i8>> = vec![None];",
+        "    for i in 1..=3 {",
+        "        stack.push(Some(i));",
+        "    }",
+        "",
+        "    let mut seen = Vec::new();",
+        "    while let Some(Some(n)) = stack.pop() {",
+        "        seen.push(n);",
+        "    }",
+        "",
+        "    println!(\"{seen:?} left: {}\", stack.len());",
+        "}"
+      ],
+      "verify": {
+        "stdout": "[3, 2, 1] left: 0"
+      },
+      "options": [
+        {
+          "id": "a",
+          "text": "`[3, 2, 1] left: 0`",
+          "correct": true,
+          "rationale": "The fourth `pop` returns `Some(None)`. It does not match `Some(Some(n))`, so the loop ends — but the `None` element has already been popped."
+        },
+        {
+          "id": "b",
+          "text": "`[3, 2, 1] left: 1`",
+          "rationale": "The pattern is tested on the *result* of `pop()`. By the time it fails to match, the element is gone from the vector."
+        },
+        {
+          "id": "c",
+          "text": "`[1, 2, 3] left: 0`",
+          "rationale": "`pop` removes from the end, so the last pushed item comes out first."
+        },
+        {
+          "id": "d",
+          "text": "It loops forever",
+          "rationale": "A pattern that fails to match ends a `while let`."
+        }
+      ]
+    }
+  ]
+}

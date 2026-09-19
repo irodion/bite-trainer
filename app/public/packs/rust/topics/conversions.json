@@ -1,0 +1,167 @@
+{
+  "$schema": "../../schema/topic.schema.json",
+  "id": "conversions",
+  "title": "Conversions",
+  "primer": {
+    "title": "as, From/Into and TryFrom",
+    "body": [
+      "`as` is a raw cast between primitive types. It never fails — it truncates or wraps instead: `300 as u8` is 44.",
+      "`From`/`Into` are for conversions that **cannot fail**; implementing `From<A> for B` gives you `a.into()` for free. `TryFrom`/`TryInto` return a `Result` for conversions that can fail.",
+      "There are no implicit numeric conversions, not even in arithmetic: `f64 / usize` does not compile."
+    ]
+  },
+  "exercises": [
+    {
+      "id": "no-implicit-numeric-conversion",
+      "type": "choice",
+      "flavor": "predict-error",
+      "timeBudget": 60,
+      "source": "rustlings: using_as",
+      "prompt": "This does not compile. What does the compiler object to?",
+      "code": [
+        "fn average(values: &[f64]) -> f64 {",
+        "    let total: f64 = values.iter().sum();",
+        "    total / values.len()",
+        "}",
+        "",
+        "fn main() {",
+        "    let values = [3.5, 0.3, 13.0, 11.7];",
+        "    println!(\"{}\", average(&values));",
+        "}"
+      ],
+      "verify": {
+        "error": "E0277",
+        "line": 3
+      },
+      "options": [
+        {
+          "id": "a",
+          "text": "E0277: line 3 divides an `f64` by a `usize`",
+          "correct": true,
+          "rationale": "Rust never converts numbers implicitly. `values.len() as f64` makes both sides `f64`."
+        },
+        {
+          "id": "b",
+          "text": "E0308: `sum()` on line 2 returns `&f64`, not `f64`",
+          "rationale": "`sum` can add up `&f64` items into an `f64`; the annotation on `total` selects that."
+        },
+        {
+          "id": "c",
+          "text": "It compiles and prints `7.125`",
+          "rationale": "It would, with the cast. As written there is no `Div<usize>` for `f64`."
+        },
+        {
+          "id": "d",
+          "text": "E0308: an array `[f64; 4]` cannot be passed as `&[f64]`",
+          "rationale": "`&values` coerces from `&[f64; 4]` to a slice automatically."
+        }
+      ]
+    },
+    {
+      "id": "as-wraps-try-from-checks",
+      "type": "choice",
+      "flavor": "predict-output",
+      "timeBudget": 75,
+      "source": "rustlings: try_from_into, using_as",
+      "prompt": "What does this program print?",
+      "code": [
+        "fn main() {",
+        "    let big: i32 = 300;",
+        "",
+        "    let cast = big as u8;",
+        "    let tried = u8::try_from(big);",
+        "    let fits = u8::try_from(200);",
+        "",
+        "    println!(\"{cast} {} {fits:?}\", tried.is_err());",
+        "}"
+      ],
+      "verify": {
+        "stdout": "44 true Ok(200)"
+      },
+      "options": [
+        {
+          "id": "a",
+          "text": "`44 true Ok(200)`",
+          "correct": true,
+          "rationale": "`as` keeps the low 8 bits: 300 − 256 = 44. `try_from` checks the range instead, so 300 is an `Err` and 200 is `Ok`."
+        },
+        {
+          "id": "b",
+          "text": "`255 true Ok(200)`",
+          "rationale": "Integer-to-integer `as` truncates bits; it does not clamp. (Float-to-integer `as` is the one that saturates.)"
+        },
+        {
+          "id": "c",
+          "text": "It panics on line 4: 300 does not fit in a `u8`",
+          "rationale": "`as` never panics. Overflow checks apply to arithmetic, not to casts."
+        },
+        {
+          "id": "d",
+          "text": "`44 false Ok(200)`",
+          "rationale": "`try_from(300)` fails — `u8` ends at 255 — so `is_err()` is `true`."
+        }
+      ]
+    },
+    {
+      "id": "from-str-with-fallback",
+      "type": "choice",
+      "flavor": "predict-output",
+      "timeBudget": 90,
+      "source": "rustlings: from_into",
+      "prompt": "What does this program print?",
+      "code": [
+        "struct Person {",
+        "    name: String,",
+        "    age: u8,",
+        "}",
+        "",
+        "impl From<&str> for Person {",
+        "    fn from(s: &str) -> Self {",
+        "        let mut p = s.split(',');",
+        "        let fields = (p.next(), p.next(), p.next());",
+        "",
+        "        if let (Some(name), Some(age), None) = fields {",
+        "            if let Ok(age) = age.parse() {",
+        "                return Person { name: name.into(), age };",
+        "            }",
+        "        }",
+        "        Person { name: \"John\".into(), age: 30 }",
+        "    }",
+        "}",
+        "",
+        "fn main() {",
+        "    let a: Person = \"Mark,20\".into();",
+        "    let b = Person::from(\"Mark,twenty\");",
+        "    let c = Person::from(\"Mark,20,extra\");",
+        "    println!(\"{} {} {} {}\", a.name, a.age, b.age, c.age);",
+        "}"
+      ],
+      "verify": {
+        "stdout": "Mark 20 30 30"
+      },
+      "options": [
+        {
+          "id": "a",
+          "text": "`Mark 20 30 30`",
+          "correct": true,
+          "rationale": "Only exactly two fields with a numeric age return early with a custom `Person`. `b` fails `parse`, and `c` has a third field, so the third slot is not `None`: both fall through to John, 30."
+        },
+        {
+          "id": "b",
+          "text": "`Mark 20 30 20`",
+          "rationale": "The pattern demands `None` in the third slot. `\"Mark,20,extra\"` has `Some(\"extra\")` there, so the `if let` does not match."
+        },
+        {
+          "id": "c",
+          "text": "It panics: `\"twenty\"` cannot be parsed",
+          "rationale": "`parse` returns a `Result`; `if let Ok(age)` simply does not match an `Err`. Nothing unwraps."
+        },
+        {
+          "id": "d",
+          "text": "It does not compile: `.into()` is not implemented for `&str`",
+          "rationale": "Implementing `From<&str> for Person` provides `Into<Person> for &str` automatically."
+        }
+      ]
+    }
+  ]
+}

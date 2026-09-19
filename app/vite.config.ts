@@ -5,7 +5,7 @@ import { VitePWA } from 'vite-plugin-pwa'
 export default defineConfig({
   base: './',
   // Unit tests only; e2e/ belongs to Playwright.
-  test: { include: ['src/**/*.test.ts'] },
+  test: { include: ['src/**/*.test.ts', 'tools/**/*.test.ts'] },
   plugins: [
     svelte(),
     VitePWA({

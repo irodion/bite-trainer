@@ -1,0 +1,182 @@
+{
+  "$schema": "../../schema/topic.schema.json",
+  "id": "smart-pointers",
+  "title": "Smart pointers",
+  "primer": {
+    "title": "Box, Rc and Cow",
+    "body": [
+      "`Box<T>` puts a value on the heap behind a pointer of known size. That is what makes recursive types possible: a `List` that contains a `List` has no finite size, a `List` that contains a `Box<List>` does.",
+      "`Rc<T>` is shared ownership: `Rc::clone` does not copy the value, it adds an owner and bumps a counter. The value is dropped when the last owner goes.",
+      "`Cow` (clone on write) starts out borrowing. `to_mut()` clones the data the first time a write is needed — and never, if no write happens."
+    ]
+  },
+  "exercises": [
+    {
+      "id": "recursive-type",
+      "type": "choice",
+      "flavor": "predict-error",
+      "timeBudget": 60,
+      "source": "rustlings: box1",
+      "prompt": "This does not compile. What does the compiler object to?",
+      "code": [
+        "#[derive(Debug)]",
+        "enum List {",
+        "    Cons(i32, List),",
+        "    Nil,",
+        "}",
+        "",
+        "fn main() {",
+        "    let list = List::Cons(1, List::Nil);",
+        "    println!(\"{list:?}\");",
+        "}"
+      ],
+      "verify": {
+        "error": "E0072",
+        "line": 2
+      },
+      "options": [
+        {
+          "id": "a",
+          "text": "E0072: `List` is a recursive type with infinite size",
+          "correct": true,
+          "rationale": "A `Cons` holds a `List`, which may hold a `List`… so no size can be computed. `Cons(i32, Box<List>)` stores a fixed-size pointer instead."
+        },
+        {
+          "id": "b",
+          "text": "E0277: `Debug` cannot be derived for a recursive type",
+          "rationale": "Deriving `Debug` for recursive types is fine, once the type itself is valid."
+        },
+        {
+          "id": "c",
+          "text": "It compiles and prints `Cons(1, Nil)`",
+          "rationale": "That is what the `Box` version prints. As written, the compiler cannot lay the type out in memory."
+        },
+        {
+          "id": "d",
+          "text": "E0308: `List::Nil` is not a `List`",
+          "rationale": "`Nil` is a variant of `List`, so it has type `List`."
+        }
+      ]
+    },
+    {
+      "id": "rc-strong-count",
+      "type": "choice",
+      "flavor": "predict-output",
+      "timeBudget": 90,
+      "source": "rustlings: rc1",
+      "prompt": "What does this program print?",
+      "code": [
+        "use std::rc::Rc;",
+        "",
+        "struct Sun;",
+        "",
+        "struct Planet {",
+        "    sun: Rc<Sun>,",
+        "}",
+        "",
+        "fn main() {",
+        "    let sun = Rc::new(Sun);",
+        "    let mercury = Planet { sun: Rc::clone(&sun) };",
+        "    let venus = Planet { sun: Rc::clone(&sun) };",
+        "    print!(\"{} \", Rc::strong_count(&sun));",
+        "",
+        "    drop(venus);",
+        "    let earth = Planet { sun: sun.clone() };",
+        "    print!(\"{} \", Rc::strong_count(&earth.sun));",
+        "",
+        "    drop(sun);",
+        "    println!(\"{}\", Rc::strong_count(&mercury.sun));",
+        "}"
+      ],
+      "verify": {
+        "stdout": "3 3 2"
+      },
+      "options": [
+        {
+          "id": "a",
+          "text": "`3 3 2`",
+          "correct": true,
+          "rationale": "Owners: `sun`, mercury, venus = 3. Venus goes, earth comes = 3. Then the `sun` handle itself is dropped = 2. Every handle reports the same count."
+        },
+        {
+          "id": "b",
+          "text": "`2 2 1`",
+          "rationale": "The original `sun` binding is an owner too, not just the planets."
+        },
+        {
+          "id": "c",
+          "text": "`3 3 3`",
+          "rationale": "`drop(sun)` removes one owner. The `Sun` value lives on, because mercury and earth still hold it."
+        },
+        {
+          "id": "d",
+          "text": "It does not compile: `mercury.sun` is used after `drop(sun)`",
+          "rationale": "`drop(sun)` only gives up *that* handle. `mercury.sun` is another owner of the same value."
+        }
+      ]
+    },
+    {
+      "id": "cow-clones-on-write",
+      "type": "choice",
+      "flavor": "predict-output",
+      "timeBudget": 90,
+      "source": "rustlings: cow1",
+      "prompt": "What does this program print?",
+      "code": [
+        "use std::borrow::Cow;",
+        "",
+        "fn abs_all(input: &mut Cow<[i32]>) {",
+        "    for i in 0..input.len() {",
+        "        let v = input[i];",
+        "        if v < 0 {",
+        "            input.to_mut()[i] = -v;",
+        "        }",
+        "    }",
+        "}",
+        "",
+        "fn kind(c: &Cow<[i32]>) -> &'static str {",
+        "    match c {",
+        "        Cow::Borrowed(_) => \"borrowed\",",
+        "        Cow::Owned(_) => \"owned\",",
+        "    }",
+        "}",
+        "",
+        "fn main() {",
+        "    let clean = [0, 1, 2];",
+        "    let dirty = [1, -2, 3];",
+        "    let mut a = Cow::from(&clean[..]);",
+        "    let mut b = Cow::from(&dirty[..]);",
+        "    abs_all(&mut a);",
+        "    abs_all(&mut b);",
+        "    println!(\"{} {} {b:?} {dirty:?}\", kind(&a), kind(&b));",
+        "}"
+      ],
+      "verify": {
+        "stdout": "borrowed owned [1, 2, 3] [1, -2, 3]"
+      },
+      "options": [
+        {
+          "id": "a",
+          "text": "`borrowed owned [1, 2, 3] [1, -2, 3]`",
+          "correct": true,
+          "rationale": "`a` never needed a write, so it still borrows. `b` was cloned by the first `to_mut()`; the change went into the clone, and `dirty` is untouched."
+        },
+        {
+          "id": "b",
+          "text": "`owned owned [1, 2, 3] [1, -2, 3]`",
+          "rationale": "`to_mut()` is only reached for negative values. `clean` has none, so no clone is made."
+        },
+        {
+          "id": "c",
+          "text": "`borrowed owned [1, 2, 3] [1, 2, 3]`",
+          "rationale": "`b` only held a shared borrow of `dirty`. Writing required a private copy; the original cannot change."
+        },
+        {
+          "id": "d",
+          "text": "`borrowed borrowed [1, -2, 3] [1, -2, 3]`",
+          "rationale": "`to_mut()` on a borrowed `Cow` clones the data, switches it to `Owned`, and returns `&mut` to the clone."
+        }
+      ]
+    }
+  ]
+}

@@ -14,6 +14,210 @@
   },
   "exercises": [
     {
+      "id": "vec-moved-into-fn",
+      "type": "line-select",
+      "flavor": "find-the-line",
+      "timeBudget": 60,
+      "source": "rustlings: move_semantics2",
+      "prompt": "Tap the line the compiler rejects.",
+      "code": [
+        "fn fill_vec(vec: Vec<i32>) -> Vec<i32> {",
+        "    let mut vec = vec;",
+        "    vec.push(88);",
+        "    vec",
+        "}",
+        "",
+        "fn main() {",
+        "    let vec0 = vec![22, 44, 66];",
+        "    let vec1 = fill_vec(vec0);",
+        "",
+        "    println!(\"{vec0:?}\");",
+        "    println!(\"{vec1:?}\");",
+        "}"
+      ],
+      "verify": {
+        "error": "E0382"
+      },
+      "correctLines": [
+        11
+      ],
+      "rationale": "Line 11 reads `vec0` after line 9 moved it into `fill_vec` (E0382). `Vec` is not `Copy`, so passing it by value gives it away.",
+      "lineRationales": {
+        "9": "This is where `vec0` is moved — and moving is legal. The error is reported where the moved value is used again.",
+        "2": "Rebinding a parameter as `mut` is fine: the function owns `vec`, so it may decide to mutate it.",
+        "12": "`vec1` owns the vector that `fill_vec` returned. Nothing has moved out of it."
+      },
+      "fallbackRationale": "That line compiles. Look for a value that is used after it was passed by value."
+    },
+    {
+      "id": "push-without-mut",
+      "type": "choice",
+      "flavor": "predict-error",
+      "timeBudget": 60,
+      "source": "rustlings: move_semantics1, move_semantics3",
+      "prompt": "This does not compile. What does the compiler object to?",
+      "code": [
+        "fn fill_vec(vec: Vec<i32>) -> Vec<i32> {",
+        "    vec.push(88);",
+        "    vec",
+        "}",
+        "",
+        "fn main() {",
+        "    let vec0 = vec![22, 44, 66];",
+        "    let vec1 = fill_vec(vec0);",
+        "    println!(\"{vec1:?}\");",
+        "}"
+      ],
+      "verify": {
+        "error": "E0596",
+        "line": 2
+      },
+      "options": [
+        {
+          "id": "a",
+          "text": "E0596: `vec` is not declared mutable, so it cannot be borrowed as mutable on line 2",
+          "correct": true,
+          "rationale": "`push` takes `&mut self`. Owning a value is not enough: the binding itself must be `mut` (`mut vec: Vec<i32>`)."
+        },
+        {
+          "id": "b",
+          "text": "E0382: `vec0` is used after being moved on line 8",
+          "rationale": "`vec0` is moved on line 8 but never touched again. `vec1` is a different value."
+        },
+        {
+          "id": "c",
+          "text": "E0308: `fill_vec` returns `()` because line 2 ends in `;`",
+          "rationale": "The function's last expression is `vec` on line 3, without a semicolon."
+        },
+        {
+          "id": "d",
+          "text": "E0507: `vec` cannot be moved out of the function",
+          "rationale": "Returning an owned value is the normal way to hand ownership back."
+        }
+      ]
+    },
+    {
+      "id": "two-mutable-borrows",
+      "type": "line-select",
+      "flavor": "find-the-line",
+      "timeBudget": 60,
+      "source": "rustlings: move_semantics4",
+      "prompt": "Tap the line the compiler rejects.",
+      "code": [
+        "fn main() {",
+        "    let mut x = Vec::new();",
+        "",
+        "    let y = &mut x;",
+        "    let z = &mut x;",
+        "",
+        "    y.push(42);",
+        "    z.push(13);",
+        "",
+        "    println!(\"{x:?}\");",
+        "}"
+      ],
+      "verify": {
+        "error": "E0499"
+      },
+      "correctLines": [
+        5
+      ],
+      "rationale": "Line 5 takes a second `&mut x` while `y` is still alive — `y` is used again on line 7 (E0499).",
+      "lineRationales": {
+        "4": "The first mutable borrow is fine. It becomes a problem only because it is still in use when line 5 asks for another one.",
+        "7": "This use is what keeps `y` alive across line 5 — but the compiler reports the error at the second borrow, not here.",
+        "10": "By line 10 both `y` and `z` have had their last use, so reading `x` is allowed again."
+      },
+      "fallbackRationale": "That line compiles. Count the `&mut` borrows of `x` that are alive at the same time."
+    },
+    {
+      "id": "borrows-end-at-last-use",
+      "type": "choice",
+      "flavor": "predict-output",
+      "timeBudget": 60,
+      "source": "rustlings: move_semantics4 (solution)",
+      "prompt": "Same lines as before, reordered. What happens now?",
+      "code": [
+        "fn main() {",
+        "    let mut x = Vec::new();",
+        "",
+        "    let y = &mut x;",
+        "    y.push(42);",
+        "",
+        "    let z = &mut x;",
+        "    z.push(13);",
+        "",
+        "    println!(\"{x:?}\");",
+        "}"
+      ],
+      "verify": {
+        "stdout": "[42, 13]"
+      },
+      "options": [
+        {
+          "id": "a",
+          "text": "`[42, 13]`",
+          "correct": true,
+          "rationale": "A borrow ends at its last use. `y` is finished after line 5, so line 7 may borrow `x` mutably again."
+        },
+        {
+          "id": "b",
+          "text": "It does not compile: E0499, `x` is mutably borrowed twice",
+          "rationale": "Two `&mut` borrows conflict only if they are alive at the same time. `y` is never used after line 5."
+        },
+        {
+          "id": "c",
+          "text": "`[13, 42]`",
+          "rationale": "`push` appends at the end, in program order."
+        },
+        {
+          "id": "d",
+          "text": "It does not compile: `x` is still mutably borrowed on line 10",
+          "rationale": "`z` has its last use on line 8, so the borrow is over before `x` is read."
+        }
+      ]
+    },
+    {
+      "id": "moved-then-borrowed",
+      "type": "line-select",
+      "flavor": "find-the-line",
+      "timeBudget": 75,
+      "source": "rustlings: move_semantics5",
+      "prompt": "Tap the line the compiler rejects.",
+      "code": [
+        "fn get_char(data: String) -> char {",
+        "    data.chars().last().unwrap()",
+        "}",
+        "",
+        "fn string_uppercase(data: &String) {",
+        "    let upper = data.to_uppercase();",
+        "    println!(\"{upper}\");",
+        "}",
+        "",
+        "fn main() {",
+        "    let data = \"Rust is great!\".to_string();",
+        "",
+        "    let last = get_char(data);",
+        "    string_uppercase(&data);",
+        "",
+        "    println!(\"{last}\");",
+        "}"
+      ],
+      "verify": {
+        "error": "E0382"
+      },
+      "correctLines": [
+        14
+      ],
+      "rationale": "Line 14 borrows `data` after line 13 moved it into `get_char`, whose parameter is `String`, not `&String` (E0382).",
+      "lineRationales": {
+        "13": "Passing `data` by value is legal — it is simply the last time `main` may use it. The error appears at the next use.",
+        "1": "A function is free to take ownership. This signature is the *cause*, but not where the compiler reports the error.",
+        "5": "Taking `&String` only borrows. This function is the well-behaved one."
+      },
+      "fallbackRationale": "That line compiles. Compare the two function signatures: which one takes ownership?"
+    },
+    {
       "id": "inventory-shared-then-mut",
       "type": "choice",
       "flavor": "predict-error",
@@ -72,7 +276,11 @@
           "text": "E0308: `add` returns `bool` but the result is unused",
           "rationale": "Ignoring a `bool` is legal; only `#[must_use]` types warn."
         }
-      ]
+      ],
+      "verify": {
+        "error": "E0502",
+        "line": 26
+      }
     },
     {
       "id": "order-used-after-archive",
@@ -109,14 +317,19 @@
         "    println!(\"order {} done\", order.id);",
         "}"
       ],
-      "correctLines": [26],
+      "correctLines": [
+        26
+      ],
       "rationale": "Line 26 reads `order` after line 24 moved it into `archive` (E0382). The move itself is legal; the later use is what fails.",
       "lineRationales": {
         "24": "This is where `order` is moved — and moving is allowed. The error is reported where the moved value is used again.",
         "21": "`clone()` makes an independent copy, so `order` is still owned by `main` afterwards.",
         "10": "`order.id` is a `u32`, which is `Copy`; it is read before `order` itself moves into the map."
       },
-      "fallbackRationale": "That line compiles. Look for a value that is used after ownership has been given away."
+      "fallbackRationale": "That line compiles. Look for a value that is used after ownership has been given away.",
+      "verify": {
+        "error": "E0382"
+      }
     }
   ]
 }

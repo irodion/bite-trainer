@@ -20,16 +20,18 @@ test('after one online visit, a Learner can reload offline, complete a Session, 
   await context.setOffline(true)
   await page.reload()
 
-  await page.getByRole('button', { name: /Start Session · 4 Exercises/ }).click()
+  const start = page.getByRole('button', { name: /Start Session/ })
+  const count = Number(/(\d+) Exercise/.exec((await start.textContent()) ?? '')?.[1])
+  expect(count).toBeGreaterThan(0)
+  await start.click()
   await expect(page.locator('.code span[style*="--shiki"]').first()).toBeVisible()
-  for (let i = 0; i < 4; i++) await answerCurrentExercise(page)
+  for (let i = 0; i < count; i++) await answerCurrentExercise(page)
 
   await expect(page.getByText('Streak: 1 day')).toBeVisible()
 
   await page.reload()
   await expect(page.getByText('Streak: 1 day')).toBeVisible()
-  await expect(page.getByText(/5 events/)).toBeVisible()
-  await expect(page.getByText('Nothing due today')).toBeVisible()
+  await expect(page.getByText(`${count + 1} events`)).toBeVisible()
 })
 
 test('the app is installable: manifest with name, icons, start_url and standalone display', async ({ page }) => {

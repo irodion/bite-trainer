@@ -18,6 +18,12 @@ export interface Primer {
   body: string[]
 }
 
+/**
+ * The machine-checkable claim an Exercise makes about its snippet, proven at author time by the language toolchain:
+ * it prints exactly this (trailing whitespace ignored), it fails to compile with this error (on this line), or it just compiles.
+ */
+export type Claim = { stdout: string } | { error: string; line?: number } | { compiles: true }
+
 interface ExerciseBase {
   id: string
   flavor: string
@@ -26,6 +32,9 @@ interface ExerciseBase {
   code: string[]
   focus?: [number, number]
   explanation?: string
+  /** Where the Exercise was adapted from, for attribution (e.g. "rustlings: move_semantics2"). */
+  source?: string
+  verify?: Claim
 }
 
 export interface ChoiceOption {

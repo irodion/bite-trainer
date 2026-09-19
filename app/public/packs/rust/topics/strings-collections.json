@@ -1,0 +1,211 @@
+{
+  "$schema": "../../schema/topic.schema.json",
+  "id": "strings-collections",
+  "title": "Strings & collections",
+  "primer": {
+    "title": "Owned, borrowed, and keyed",
+    "body": [
+      "`String` owns its text on the heap; `&str` is a borrowed view of text that lives somewhere else. A `&String` coerces to `&str` automatically, but a `String` passed *by value* does not.",
+      "`iter()` lends out `&T`, `iter_mut()` lends out `&mut T` (write through it with `*n`), and `into_iter()` on a `Vec` gives away each `T`.",
+      "`map.entry(key).or_insert(v)` inserts `v` only if the key is absent, and returns `&mut` to the value either way:",
+      "```\n*counts.entry(word).or_insert(0) += 1;\n```"
+    ]
+  },
+  "exercises": [
+    {
+      "id": "string-is-not-str",
+      "type": "choice",
+      "flavor": "predict-error",
+      "timeBudget": 60,
+      "source": "rustlings: strings2",
+      "prompt": "This does not compile. What does the compiler object to?",
+      "code": [
+        "fn is_a_color_word(attempt: &str) -> bool {",
+        "    attempt == \"green\" || attempt == \"blue\"",
+        "}",
+        "",
+        "fn main() {",
+        "    let word = String::from(\"green\");",
+        "",
+        "    if is_a_color_word(word) {",
+        "        println!(\"That is a color word I know!\");",
+        "    } else {",
+        "        println!(\"That is not a color word I know.\");",
+        "    }",
+        "}"
+      ],
+      "verify": {
+        "error": "E0308",
+        "line": 8
+      },
+      "options": [
+        {
+          "id": "a",
+          "text": "E0308: line 8 passes a `String` where `&str` is expected",
+          "correct": true,
+          "rationale": "Rust never borrows for you at a call site. `&word` would work: `&String` coerces to `&str`."
+        },
+        {
+          "id": "b",
+          "text": "E0382: `word` is moved on line 8",
+          "rationale": "A move would be legal here — `word` is not used afterwards. The call is rejected earlier, on its types."
+        },
+        {
+          "id": "c",
+          "text": "E0369: `&str` cannot be compared with `==`",
+          "rationale": "`&str == &str` compares the text and is used all the time."
+        },
+        {
+          "id": "d",
+          "text": "E0106: `attempt: &str` needs a lifetime annotation",
+          "rationale": "Lifetimes in parameters are elided. Annotations are only needed when a *returned* reference is ambiguous."
+        }
+      ]
+    },
+    {
+      "id": "string-methods",
+      "type": "choice",
+      "flavor": "predict-output",
+      "timeBudget": 60,
+      "source": "rustlings: strings3",
+      "prompt": "What does this program print?",
+      "code": [
+        "fn main() {",
+        "    let input = \"  hello  \";",
+        "",
+        "    let trimmed = input.trim();",
+        "    let shout = format!(\"{}!\", trimmed.to_uppercase());",
+        "    let swapped = shout.replace(\"HELLO\", \"BYE\");",
+        "",
+        "    println!(\"[{trimmed}] {shout} {swapped}\");",
+        "}"
+      ],
+      "verify": {
+        "stdout": "[hello] HELLO! BYE!"
+      },
+      "options": [
+        {
+          "id": "a",
+          "text": "`[hello] HELLO! BYE!`",
+          "correct": true,
+          "rationale": "`trim` returns a sub-slice, `to_uppercase` and `replace` return new `String`s. None of them changes the value it is called on."
+        },
+        {
+          "id": "b",
+          "text": "`[hello] BYE! BYE!`",
+          "rationale": "`replace` does not modify `shout`; it returns a new `String`, bound to `swapped`."
+        },
+        {
+          "id": "c",
+          "text": "`[  hello  ] HELLO! BYE!`",
+          "rationale": "`trimmed` is the slice that `trim` returned, without the surrounding spaces."
+        },
+        {
+          "id": "d",
+          "text": "`[HELLO] HELLO! BYE!`",
+          "rationale": "`to_uppercase` builds a new `String`; `trimmed` still points into the original lowercase text."
+        }
+      ]
+    },
+    {
+      "id": "iter-vs-iter-mut",
+      "type": "choice",
+      "flavor": "predict-output",
+      "timeBudget": 75,
+      "source": "rustlings: vecs2",
+      "prompt": "What does this program print?",
+      "code": [
+        "fn main() {",
+        "    let input = vec![2, 4, 6];",
+        "",
+        "    let doubled: Vec<i32> =",
+        "        input.iter().map(|n| n * 2).collect();",
+        "",
+        "    let mut tripled = input.clone();",
+        "    for n in tripled.iter_mut() {",
+        "        *n *= 3;",
+        "    }",
+        "",
+        "    println!(\"{input:?} {doubled:?} {tripled:?}\");",
+        "}"
+      ],
+      "verify": {
+        "stdout": "[2, 4, 6] [4, 8, 12] [6, 12, 18]"
+      },
+      "options": [
+        {
+          "id": "a",
+          "text": "`[2, 4, 6] [4, 8, 12] [6, 12, 18]`",
+          "correct": true,
+          "rationale": "`iter().map()` builds a new vector and only reads `input`. `iter_mut()` changes `tripled` in place — but that is a clone."
+        },
+        {
+          "id": "b",
+          "text": "`[4, 8, 12] [4, 8, 12] [6, 12, 18]`",
+          "rationale": "`map` never modifies its source; `input` is not even `mut`."
+        },
+        {
+          "id": "c",
+          "text": "`[2, 4, 6] [4, 8, 12] [12, 24, 36]`",
+          "rationale": "`tripled` is cloned from `input`, not from `doubled`."
+        },
+        {
+          "id": "d",
+          "text": "It does not compile: `input` was moved by `iter()`",
+          "rationale": "`iter()` only borrows. It is `into_iter()` that would consume the vector."
+        }
+      ]
+    },
+    {
+      "id": "hashmap-entry",
+      "type": "choice",
+      "flavor": "predict-output",
+      "timeBudget": 90,
+      "source": "rustlings: hashmaps2, hashmaps3",
+      "prompt": "What does this program print?",
+      "code": [
+        "use std::collections::HashMap;",
+        "",
+        "fn main() {",
+        "    let mut basket = HashMap::new();",
+        "    basket.insert(\"apple\", 4);",
+        "    basket.insert(\"mango\", 2);",
+        "",
+        "    for fruit in [\"apple\", \"banana\", \"mango\"] {",
+        "        basket.entry(fruit).or_insert(5);",
+        "    }",
+        "    *basket.entry(\"apple\").or_insert(0) += 1;",
+        "",
+        "    let total: u32 = basket.values().sum();",
+        "    println!(\"{} kinds, {total} fruits\", basket.len());",
+        "}"
+      ],
+      "verify": {
+        "stdout": "3 kinds, 12 fruits"
+      },
+      "options": [
+        {
+          "id": "a",
+          "text": "`3 kinds, 12 fruits`",
+          "correct": true,
+          "rationale": "`or_insert` leaves existing keys alone, so only banana gets 5. Apple becomes 4 + 1: 5 + 5 + 2 = 12."
+        },
+        {
+          "id": "b",
+          "text": "`3 kinds, 16 fruits`",
+          "rationale": "This assumes `or_insert(5)` overwrote apple and mango. It only inserts when the key is missing."
+        },
+        {
+          "id": "c",
+          "text": "`3 kinds, 11 fruits`",
+          "rationale": "Line 11 adds 1 to apple: `or_insert` returns `&mut` to the existing value, and `*… += 1` writes through it."
+        },
+        {
+          "id": "d",
+          "text": "`5 kinds, 17 fruits`",
+          "rationale": "A map holds each key once. `entry` on an existing key does not add a second one."
+        }
+      ]
+    }
+  ]
+}

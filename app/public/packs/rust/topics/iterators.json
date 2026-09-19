@@ -1,8 +1,313 @@
 {
   "$schema": "../../schema/topic.schema.json",
   "id": "iterators",
-  "title": "Iterators",
+  "title": "Iterators & closures",
+  "primer": {
+    "title": "Lazy pipelines, pulled from the end",
+    "body": [
+      "An iterator does nothing until something asks it for items. Adaptors like `map` and `filter` only *describe* work; consumers like `sum`, `count`, `collect` and `for` pull values through.",
+      "`next()` returns `Some(item)` and advances, or `None` once exhausted. An iterator you have partly consumed continues where it stopped.",
+      "`collect` builds whatever the annotation asks for. From items of type `Result<T, E>` it can build a `Vec<Result<T, E>>` (keep everything) or a `Result<Vec<T>, E>` (stop at the first `Err`).",
+      "Ranges are iterators: `2..=n` includes `n`, `2..n` does not. `product()` of an empty range is 1, `sum()` is 0."
+    ]
+  },
   "exercises": [
+    {
+      "id": "next-advances",
+      "type": "choice",
+      "flavor": "predict-output",
+      "timeBudget": 60,
+      "source": "rustlings: iterators1",
+      "prompt": "What does this program print?",
+      "code": [
+        "fn main() {",
+        "    let fruits = [\"banana\", \"custard apple\", \"avocado\"];",
+        "",
+        "    let mut it = fruits.iter();",
+        "    it.next();",
+        "    let second = it.next();",
+        "    let rest: Vec<_> = it.collect();",
+        "",
+        "    println!(\"{second:?} {rest:?}\");",
+        "    println!(\"{:?}\", fruits.iter().nth(3));",
+        "}"
+      ],
+      "verify": {
+        "stdout": "Some(\"custard apple\") [\"avocado\"]\nNone"
+      },
+      "options": [
+        {
+          "id": "a",
+          "code": [
+            "Some(\"custard apple\") [\"avocado\"]",
+            "None"
+          ],
+          "correct": true,
+          "rationale": "Each `next()` advances `it`, so `collect` only sees what is left. `fruits.iter()` is a fresh iterator; index 3 is past the end, so `nth(3)` is `None`."
+        },
+        {
+          "id": "b",
+          "code": [
+            "Some(\"banana\") [\"custard apple\", \"avocado\"]",
+            "None"
+          ],
+          "rationale": "The `next()` on line 5 consumed `\"banana\"`, even though its result was thrown away."
+        },
+        {
+          "id": "c",
+          "code": [
+            "Some(\"custard apple\") [\"banana\", \"custard apple\", \"avocado\"]",
+            "None"
+          ],
+          "rationale": "`collect` does not rewind. It drains the iterator from its current position."
+        },
+        {
+          "id": "d",
+          "code": [
+            "Some(\"custard apple\") [\"avocado\"]",
+            "Some(\"avocado\")"
+          ],
+          "rationale": "`nth` counts from 0, so `nth(3)` asks for a fourth element."
+        }
+      ]
+    },
+    {
+      "id": "capitalize-first",
+      "type": "choice",
+      "flavor": "predict-output",
+      "timeBudget": 90,
+      "source": "rustlings: iterators2",
+      "prompt": "What does this program print?",
+      "code": [
+        "fn capitalize_first(input: &str) -> String {",
+        "    let mut chars = input.chars();",
+        "    match chars.next() {",
+        "        None => String::new(),",
+        "        Some(first) => {",
+        "            let up: String = first.to_uppercase().collect();",
+        "            up + chars.as_str()",
+        "        }",
+        "    }",
+        "}",
+        "",
+        "fn main() {",
+        "    let words = [\"hello\", \" \", \"\", \"world\"];",
+        "    let out: Vec<String> =",
+        "        words.iter().map(|w| capitalize_first(w)).collect();",
+        "",
+        "    println!(\"{out:?}\");",
+        "}"
+      ],
+      "verify": {
+        "stdout": "[\"Hello\", \" \", \"\", \"World\"]"
+      },
+      "options": [
+        {
+          "id": "a",
+          "text": "`[\"Hello\", \" \", \"\", \"World\"]`",
+          "correct": true,
+          "rationale": "`chars.next()` takes the first character; `as_str()` is whatever remains. For `\"\"` the match hits `None` and returns an empty `String` — `map` still yields one item per input."
+        },
+        {
+          "id": "b",
+          "text": "`[\"Hello\", \" \", \"World\"]`",
+          "rationale": "`map` is one-to-one. An empty result string is still an element."
+        },
+        {
+          "id": "c",
+          "text": "`[\"HELLO\", \" \", \"\", \"WORLD\"]`",
+          "rationale": "Only `first` is upper-cased. The rest of the word is appended unchanged."
+        },
+        {
+          "id": "d",
+          "text": "It panics on the empty string",
+          "rationale": "Nothing unwraps here: the `None` arm handles a string with no first character."
+        }
+      ]
+    },
+    {
+      "id": "collect-results",
+      "type": "choice",
+      "flavor": "predict-output",
+      "timeBudget": 90,
+      "source": "rustlings: iterators3",
+      "prompt": "What does this program print?",
+      "code": [
+        "fn divide(a: i64, b: i64) -> Result<i64, String> {",
+        "    if b == 0 {",
+        "        return Err(String::from(\"divide by zero\"));",
+        "    }",
+        "    Ok(a / b)",
+        "}",
+        "",
+        "fn main() {",
+        "    let divisors = [2, 0, 4];",
+        "",
+        "    let each: Vec<Result<i64, String>> =",
+        "        divisors.iter().map(|d| divide(8, *d)).collect();",
+        "    let all: Result<Vec<i64>, String> =",
+        "        divisors.iter().map(|d| divide(8, *d)).collect();",
+        "",
+        "    println!(\"{}\", each.len());",
+        "    println!(\"{all:?}\");",
+        "}"
+      ],
+      "verify": {
+        "stdout": "3\nErr(\"divide by zero\")"
+      },
+      "options": [
+        {
+          "id": "a",
+          "code": [
+            "3",
+            "Err(\"divide by zero\")"
+          ],
+          "correct": true,
+          "rationale": "Same pipeline, two target types. A `Vec<Result>` keeps all three outcomes. A `Result<Vec>` is `Ok` only if every item is `Ok`; otherwise it is the first `Err`."
+        },
+        {
+          "id": "b",
+          "code": [
+            "3",
+            "Ok([4, 2])"
+          ],
+          "rationale": "Collecting into `Result<Vec<_>, _>` does not skip failures — one `Err` makes the whole result an `Err`."
+        },
+        {
+          "id": "c",
+          "code": [
+            "2",
+            "Err(\"divide by zero\")"
+          ],
+          "rationale": "`each` has one entry per divisor, including the `Err`."
+        },
+        {
+          "id": "d",
+          "text": "It does not compile: `collect` cannot produce two different types from the same pipeline",
+          "rationale": "`collect` is generic over its result. The annotations on lines 11 and 13 choose the implementation."
+        }
+      ]
+    },
+    {
+      "id": "factorial-as-product",
+      "type": "choice",
+      "flavor": "pick-refactor",
+      "timeBudget": 75,
+      "source": "rustlings: iterators4",
+      "prompt": "Which replacement for the highlighted lines keeps the behaviour identical?",
+      "code": [
+        "fn factorial(num: u64) -> u64 {",
+        "    let mut result = 1;",
+        "    for i in 2..=num {",
+        "        result *= i;",
+        "    }",
+        "    result",
+        "}",
+        "",
+        "fn main() {",
+        "    println!(\"{} {}\", factorial(0), factorial(5));",
+        "}"
+      ],
+      "focus": [
+        2,
+        6
+      ],
+      "verify": {
+        "stdout": "1 120"
+      },
+      "options": [
+        {
+          "id": "a",
+          "code": [
+            "(2..=num).product()"
+          ],
+          "correct": true,
+          "rationale": "`product` multiplies every item, and the product of an empty range is 1 — exactly what the loop gives for 0 and 1."
+        },
+        {
+          "id": "b",
+          "code": [
+            "(1..num).product()"
+          ],
+          "rationale": "`1..num` stops before `num`: `factorial(5)` becomes 24."
+        },
+        {
+          "id": "c",
+          "code": [
+            "(2..=num).sum()"
+          ],
+          "rationale": "That adds instead of multiplying, and the empty sum is 0, not 1."
+        },
+        {
+          "id": "d",
+          "code": [
+            "(0..=num).product()"
+          ],
+          "rationale": "Starting at 0 makes every product 0."
+        }
+      ]
+    },
+    {
+      "id": "flat-map-count",
+      "type": "choice",
+      "flavor": "predict-output",
+      "timeBudget": 90,
+      "source": "rustlings: iterators5",
+      "prompt": "What does this program print?",
+      "code": [
+        "use std::collections::HashMap;",
+        "",
+        "#[derive(PartialEq)]",
+        "enum Progress {",
+        "    Started,",
+        "    Complete,",
+        "}",
+        "",
+        "fn main() {",
+        "    use Progress::*;",
+        "    let day1 =",
+        "        HashMap::from([(\"var\", Complete), (\"fn\", Started)]);",
+        "    let day2 =",
+        "        HashMap::from([(\"if\", Complete), (\"as\", Complete)]);",
+        "    let days = [day1, day2];",
+        "",
+        "    let done = days",
+        "        .iter()",
+        "        .flat_map(|day| day.values())",
+        "        .filter(|p| **p == Complete)",
+        "        .count();",
+        "    let all: usize = days.iter().map(|d| d.len()).sum();",
+        "",
+        "    println!(\"{done} of {all}\");",
+        "}"
+      ],
+      "verify": {
+        "stdout": "3 of 4"
+      },
+      "options": [
+        {
+          "id": "a",
+          "text": "`3 of 4`",
+          "correct": true,
+          "rationale": "`flat_map` strings the values of both maps into one sequence of four; three of them are `Complete`."
+        },
+        {
+          "id": "b",
+          "text": "`2 of 2`",
+          "rationale": "That counts maps. `flat_map` yields the *values inside* each map, not the maps."
+        },
+        {
+          "id": "c",
+          "text": "`3 of 2`",
+          "rationale": "`all` sums each map's `len()`: 2 + 2."
+        },
+        {
+          "id": "d",
+          "text": "It does not compile: `**p` dereferences too many times",
+          "rationale": "`values()` yields `&Progress`, and `filter` passes a reference to that: `&&Progress`. Two `*` reach the value."
+        }
+      ]
+    },
     {
       "id": "filter-sum-shadow",
       "type": "choice",
@@ -47,7 +352,10 @@
           "text": "It does not compile: `total` is declared twice",
           "rationale": "Re-declaring with `let` is shadowing, which is legal."
         }
-      ]
+      ],
+      "verify": {
+        "stdout": "30 small"
+      }
     }
   ]
 }

@@ -1,0 +1,195 @@
+{
+  "$schema": "../../schema/topic.schema.json",
+  "id": "lifetimes",
+  "title": "Lifetimes",
+  "primer": {
+    "title": "A reference must not outlive what it points to",
+    "body": [
+      "Every reference has a lifetime: the stretch of code in which the value it points to is guaranteed to exist. Usually the compiler infers it (*elision*).",
+      "Elision gives up when a function returns a reference and takes **several** reference parameters: it cannot tell which one the result borrows from. `'a` on the parameters and the result says \"the result lives no longer than these\".",
+      "Annotations never change how long anything lives. They only describe a relationship, which the compiler then checks at each call site.",
+      "A struct that stores a reference needs a lifetime parameter too: `struct Book<'a> { title: &'a str }` — a `Book` may not outlive the text it points into."
+    ]
+  },
+  "exercises": [
+    {
+      "id": "missing-lifetime",
+      "type": "choice",
+      "flavor": "predict-error",
+      "timeBudget": 60,
+      "source": "rustlings: lifetimes1",
+      "prompt": "This does not compile. What does the compiler object to?",
+      "code": [
+        "fn longest(x: &str, y: &str) -> &str {",
+        "    if x.len() > y.len() {",
+        "        x",
+        "    } else {",
+        "        y",
+        "    }",
+        "}",
+        "",
+        "fn main() {",
+        "    println!(\"{}\", longest(\"abcd\", \"123\"));",
+        "}"
+      ],
+      "verify": {
+        "error": "E0106",
+        "line": 1
+      },
+      "options": [
+        {
+          "id": "a",
+          "text": "E0106: the return type on line 1 needs a lifetime — the compiler cannot tell whether the result borrows from `x` or `y`",
+          "correct": true,
+          "rationale": "With two reference parameters, elision has no rule to pick one. `fn longest<'a>(x: &'a str, y: &'a str) -> &'a str` states the relationship."
+        },
+        {
+          "id": "b",
+          "text": "E0515: `longest` returns a reference to a local variable",
+          "rationale": "`x` and `y` are borrowed from the caller, not created inside the function. Returning them is sound — it just is not *described* yet."
+        },
+        {
+          "id": "c",
+          "text": "It compiles and prints `abcd`",
+          "rationale": "It would, with the lifetime added. The body is fine; only the signature is incomplete."
+        },
+        {
+          "id": "d",
+          "text": "E0308: the `if` and `else` branches have different types",
+          "rationale": "Both branches are `&str`."
+        }
+      ]
+    },
+    {
+      "id": "does-not-live-long-enough",
+      "type": "line-select",
+      "flavor": "find-the-line",
+      "timeBudget": 90,
+      "source": "rustlings: lifetimes2",
+      "prompt": "Tap the line the compiler rejects.",
+      "code": [
+        "fn longest<'a>(x: &'a str, y: &'a str) -> &'a str {",
+        "    if x.len() > y.len() {",
+        "        x",
+        "    } else {",
+        "        y",
+        "    }",
+        "}",
+        "",
+        "fn main() {",
+        "    let string1 = String::from(\"long string is long\");",
+        "    let result;",
+        "    {",
+        "        let string2 = String::from(\"xyz\");",
+        "        result = longest(&string1, &string2);",
+        "    }",
+        "    println!(\"The longest string is '{result}'\");",
+        "}"
+      ],
+      "verify": {
+        "error": "E0597"
+      },
+      "correctLines": [
+        14
+      ],
+      "rationale": "Line 14 borrows `string2`, and because of `'a` the result may point into it. `string2` is dropped on line 15, but `result` is still used on line 16 (E0597: borrowed value does not live long enough).",
+      "lineRationales": {
+        "15": "This is where `string2` is dropped — the compiler mentions this line in a note, but it reports the error at the borrow on line 14.",
+        "16": "This use is what forces the borrow to last past line 15. The compiler points at it in a note; the error itself is on line 14.",
+        "1": "The signature is correct. It is precisely what tells the compiler that `result` might borrow from `string2`.",
+        "11": "Declaring a variable without a value is fine as long as it is assigned before use."
+      },
+      "fallbackRationale": "That line compiles. Find the value with the shortest life, then the borrow of it that escapes."
+    },
+    {
+      "id": "struct-holds-reference",
+      "type": "line-select",
+      "flavor": "find-the-line",
+      "timeBudget": 45,
+      "source": "rustlings: lifetimes3",
+      "prompt": "Tap a line the compiler rejects.",
+      "code": [
+        "struct Book {",
+        "    author: &str,",
+        "    title: &str,",
+        "}",
+        "",
+        "fn main() {",
+        "    let book = Book {",
+        "        author: \"George Orwell\",",
+        "        title: \"1984\",",
+        "    };",
+        "",
+        "    println!(\"{} by {}\", book.title, book.author);",
+        "}"
+      ],
+      "verify": {
+        "error": "E0106"
+      },
+      "correctLines": [
+        2,
+        3
+      ],
+      "rationale": "Lines 2 and 3 each store a reference without saying how long it is valid (E0106). `struct Book<'a>` with `&'a str` fields ties a `Book` to the text it points into.",
+      "lineRationales": {
+        "1": "Close — the fix adds `<'a>` here. But the error is reported on the fields that lack a lifetime.",
+        "8": "String literals are `&'static str`, valid forever. The values are fine; the struct definition is incomplete."
+      },
+      "fallbackRationale": "That line compiles. Look at the struct definition rather than at how it is used."
+    },
+    {
+      "id": "borrowed-from-which",
+      "type": "choice",
+      "flavor": "predict-output",
+      "timeBudget": 90,
+      "source": "rustlings: lifetimes3 (solution)",
+      "prompt": "What does this program print?",
+      "code": [
+        "struct Book<'a> {",
+        "    author: &'a str,",
+        "    title: &'a str,",
+        "}",
+        "",
+        "fn main() {",
+        "    let text = String::from(\"George Orwell|1984\");",
+        "",
+        "    let book = {",
+        "        let mut parts = text.split('|');",
+        "        Book {",
+        "            author: parts.next().unwrap(),",
+        "            title: parts.next().unwrap(),",
+        "        }",
+        "    };",
+        "",
+        "    println!(\"{} by {}\", book.title, book.author);",
+        "}"
+      ],
+      "verify": {
+        "stdout": "1984 by George Orwell"
+      },
+      "options": [
+        {
+          "id": "a",
+          "text": "`1984 by George Orwell`",
+          "correct": true,
+          "rationale": "The slices that `split` yields point into `text`, not into the iterator. `text` outlives `book`, so dropping `parts` on line 15 harms nothing."
+        },
+        {
+          "id": "b",
+          "text": "It does not compile: `parts` is dropped on line 15 while `book` still borrows from it",
+          "rationale": "`parts` only *walks over* `text`. The `&str` items it hands out borrow from `text` itself."
+        },
+        {
+          "id": "c",
+          "text": "`George Orwell by 1984`",
+          "rationale": "The first `next()` is assigned to `author`, the second to `title` — and the `println!` names `title` first."
+        },
+        {
+          "id": "d",
+          "text": "It does not compile: a block cannot be used as a value",
+          "rationale": "A block is an expression; its value is its last expression without a semicolon."
+        }
+      ]
+    }
+  ]
+}

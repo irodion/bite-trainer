@@ -1,0 +1,293 @@
+{
+  "$schema": "../../schema/topic.schema.json",
+  "id": "traits-generics",
+  "title": "Traits & generics",
+  "primer": {
+    "title": "Shared behaviour, checked at compile time",
+    "body": [
+      "A trait names behaviour; `impl Trait for Type` provides it. A method with a body in the trait is a **default**: an empty `impl` block inherits it, and any impl may override it.",
+      "`impl A + B` (or `T: A + B`) in a parameter means the argument's type must implement **both** traits. The check happens where the function is *called*.",
+      "Generics are resolved at compile time, not at runtime: `Wrapper<i32>` and `Wrapper<&str>` are two unrelated types. A `Vec` holds exactly one of them.",
+      "`.into()` converts to whatever type the context demands, using a `From` impl — e.g. `u8` and `i8` both widen losslessly into `i16`."
+    ]
+  },
+  "exercises": [
+    {
+      "id": "trait-on-two-types",
+      "type": "choice",
+      "flavor": "predict-output",
+      "timeBudget": 90,
+      "source": "rustlings: traits1, traits2",
+      "prompt": "What does this program print?",
+      "code": [
+        "trait AppendBar {",
+        "    fn append_bar(self) -> Self;",
+        "}",
+        "",
+        "impl AppendBar for String {",
+        "    fn append_bar(mut self) -> Self {",
+        "        self.push_str(\"Bar\");",
+        "        self",
+        "    }",
+        "}",
+        "",
+        "impl AppendBar for Vec<String> {",
+        "    fn append_bar(mut self) -> Self {",
+        "        self.push(String::from(\"Bar\"));",
+        "        self",
+        "    }",
+        "}",
+        "",
+        "fn main() {",
+        "    let s = String::from(\"Foo\").append_bar().append_bar();",
+        "    let v = vec![String::from(\"Foo\")].append_bar();",
+        "",
+        "    println!(\"{s} {v:?} {}\", v.len());",
+        "}"
+      ],
+      "verify": {
+        "stdout": "FooBarBar [\"Foo\", \"Bar\"] 2"
+      },
+      "options": [
+        {
+          "id": "a",
+          "text": "`FooBarBar [\"Foo\", \"Bar\"] 2`",
+          "correct": true,
+          "rationale": "Which impl runs depends on the receiver's type. On a `String` it appends text, twice. On a `Vec<String>` it pushes a new element."
+        },
+        {
+          "id": "b",
+          "text": "`FooBarBar [\"FooBar\"] 1`",
+          "rationale": "The `Vec<String>` impl pushes a new element; it does not call `append_bar` on each string inside."
+        },
+        {
+          "id": "c",
+          "text": "`FooBar [\"Foo\", \"Bar\"] 2`",
+          "rationale": "`append_bar` returns `Self`, so the calls chain: each one appends another `Bar`."
+        },
+        {
+          "id": "d",
+          "text": "It does not compile: the trait says `self`, the impls say `mut self`",
+          "rationale": "`mut` on a by-value parameter is a detail of the body, not part of the signature."
+        }
+      ]
+    },
+    {
+      "id": "default-method",
+      "type": "choice",
+      "flavor": "predict-output",
+      "timeBudget": 75,
+      "source": "rustlings: traits3, traits4",
+      "prompt": "What does this program print?",
+      "code": [
+        "trait Licensed {",
+        "    fn licensing_info(&self) -> String {",
+        "        String::from(\"Default license\")",
+        "    }",
+        "}",
+        "",
+        "struct SomeSoftware {",
+        "    version: u8,",
+        "}",
+        "struct OtherSoftware;",
+        "",
+        "impl Licensed for SomeSoftware {",
+        "    fn licensing_info(&self) -> String {",
+        "        format!(\"MIT v{}\", self.version)",
+        "    }",
+        "}",
+        "impl Licensed for OtherSoftware {}",
+        "",
+        "fn describe(item: &impl Licensed) -> String {",
+        "    item.licensing_info()",
+        "}",
+        "",
+        "fn main() {",
+        "    let a = describe(&SomeSoftware { version: 2 });",
+        "    let b = describe(&OtherSoftware);",
+        "    println!(\"{a} / {b}\");",
+        "}"
+      ],
+      "verify": {
+        "stdout": "MIT v2 / Default license"
+      },
+      "options": [
+        {
+          "id": "a",
+          "text": "`MIT v2 / Default license`",
+          "correct": true,
+          "rationale": "`SomeSoftware` overrides the method; `OtherSoftware`'s empty impl inherits the default body from the trait."
+        },
+        {
+          "id": "b",
+          "text": "`Default license / Default license`",
+          "rationale": "An impl that defines the method replaces the default for that type."
+        },
+        {
+          "id": "c",
+          "text": "It does not compile: `impl Licensed for OtherSoftware {}` implements nothing",
+          "rationale": "An empty impl is valid when every trait method has a default body."
+        },
+        {
+          "id": "d",
+          "text": "It does not compile: `describe` cannot accept two different types",
+          "rationale": "`&impl Licensed` makes `describe` generic. It is compiled once for each type it is called with."
+        }
+      ]
+    },
+    {
+      "id": "missing-trait-bound",
+      "type": "line-select",
+      "flavor": "find-the-line",
+      "timeBudget": 75,
+      "source": "rustlings: traits5",
+      "prompt": "Tap the line the compiler rejects.",
+      "code": [
+        "trait SomeTrait {",
+        "    fn some_function(&self) -> bool {",
+        "        true",
+        "    }",
+        "}",
+        "trait OtherTrait {",
+        "    fn other_function(&self) -> bool {",
+        "        true",
+        "    }",
+        "}",
+        "",
+        "struct SomeStruct;",
+        "struct OtherStruct;",
+        "",
+        "impl SomeTrait for SomeStruct {}",
+        "impl OtherTrait for SomeStruct {}",
+        "impl SomeTrait for OtherStruct {}",
+        "",
+        "fn both(item: impl SomeTrait + OtherTrait) -> bool {",
+        "    item.some_function() && item.other_function()",
+        "}",
+        "",
+        "fn main() {",
+        "    println!(\"{}\", both(SomeStruct));",
+        "    println!(\"{}\", both(OtherStruct));",
+        "}"
+      ],
+      "verify": {
+        "error": "E0277"
+      },
+      "correctLines": [
+        25
+      ],
+      "rationale": "Line 25 passes an `OtherStruct`, which implements `SomeTrait` only. `both` demands `SomeTrait + OtherTrait` (E0277).",
+      "lineRationales": {
+        "19": "The signature is valid — it is the contract. The error is reported at the call that fails to meet it.",
+        "20": "Inside `both`, the bounds guarantee that both methods exist. This line can never be the problem.",
+        "17": "Implementing just one of the traits is legal. It only means this type cannot be passed to `both`.",
+        "24": "`SomeStruct` implements both traits (lines 15 and 16)."
+      },
+      "fallbackRationale": "That line compiles. Check which traits each struct implements, then look at the calls."
+    },
+    {
+      "id": "generic-is-not-dynamic",
+      "type": "choice",
+      "flavor": "predict-error",
+      "timeBudget": 60,
+      "source": "rustlings: generics2",
+      "prompt": "This does not compile. What does the compiler object to?",
+      "code": [
+        "struct Wrapper<T> {",
+        "    value: T,",
+        "}",
+        "",
+        "impl<T> Wrapper<T> {",
+        "    fn new(value: T) -> Self {",
+        "        Wrapper { value }",
+        "    }",
+        "}",
+        "",
+        "fn main() {",
+        "    let a = Wrapper::new(42);",
+        "    let b = Wrapper::new(\"Foo\");",
+        "",
+        "    let mut items = vec![a];",
+        "    items.push(b);",
+        "",
+        "    println!(\"{}\", items.len());",
+        "}"
+      ],
+      "verify": {
+        "error": "E0308",
+        "line": 16
+      },
+      "options": [
+        {
+          "id": "a",
+          "text": "E0308: `items` is a `Vec<Wrapper<i32>>`, and line 16 pushes a `Wrapper<&str>`",
+          "correct": true,
+          "rationale": "`Wrapper<i32>` and `Wrapper<&str>` are distinct types. Line 15 fixes the element type; a `Vec` holds one type only."
+        },
+        {
+          "id": "b",
+          "text": "It compiles and prints `2`",
+          "rationale": "Generics are not dynamic typing. `T` is replaced by one concrete type per value, at compile time."
+        },
+        {
+          "id": "c",
+          "text": "E0282: the type of `T` cannot be inferred on lines 12 and 13",
+          "rationale": "It is inferred from each argument: `42` gives `i32`, `\"Foo\"` gives `&str`."
+        },
+        {
+          "id": "d",
+          "text": "E0277: `T` needs a `Display` bound to be printed",
+          "rationale": "Only `items.len()` is printed. `value` is never formatted."
+        }
+      ]
+    },
+    {
+      "id": "into-widens",
+      "type": "choice",
+      "flavor": "predict-output",
+      "timeBudget": 60,
+      "source": "rustlings: generics1",
+      "prompt": "What does this program print?",
+      "code": [
+        "fn main() {",
+        "    let mut numbers: Vec<i16> = Vec::new();",
+        "",
+        "    let n1: u8 = 42;",
+        "    numbers.push(n1.into());",
+        "",
+        "    let n2: i8 = -1;",
+        "    numbers.push(n2.into());",
+        "",
+        "    let total: i16 = numbers.iter().sum();",
+        "    println!(\"{numbers:?} {total}\");",
+        "}"
+      ],
+      "verify": {
+        "stdout": "[42, -1] 41"
+      },
+      "options": [
+        {
+          "id": "a",
+          "text": "`[42, -1] 41`",
+          "correct": true,
+          "rationale": "`push` expects an `i16`, so each `.into()` picks `From<u8>` or `From<i8>` for `i16`. Both conversions are lossless."
+        },
+        {
+          "id": "b",
+          "text": "It does not compile: a `Vec` cannot hold both `u8` and `i8`",
+          "rationale": "It never does. Each value is converted to `i16` before it is pushed."
+        },
+        {
+          "id": "c",
+          "text": "`[42, 255] 297`",
+          "rationale": "That would be reinterpreting the bits of -1 as unsigned. `From` conversions preserve the *value*."
+        },
+        {
+          "id": "d",
+          "text": "It does not compile: `.into()` needs an explicit target type",
+          "rationale": "The target is inferred from the context: `numbers` is a `Vec<i16>`."
+        }
+      ]
+    }
+  ]
+}

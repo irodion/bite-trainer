@@ -1,5 +1,6 @@
 #!/bin/sh
-# Commit gate: format check, lint, typecheck and unit tests for app/.
+# Commit gate: format check, lint, typecheck and unit tests for app/;
+# plus claim verification with rustc when a Pack or the verifier changes.
 # Activated by `pnpm install` in app/ (prepare → git config core.hooksPath .githooks).
 # Skipped when the commit touches nothing under app/ (e.g. map/ticket edits).
 
@@ -15,4 +16,18 @@ if ! pnpm --silent verify; then
   echo
   echo "pre-commit: blocked. Fix the above; 'pnpm format' fixes formatting. Then re-stage and commit."
   exit 1
+fi
+
+# Pack content changed: every Exercise's claim must hold against the real compiler.
+if ! git diff --cached --quiet -- app/public/packs/ app/tools/verify-pack/; then
+  if command -v rustc >/dev/null 2>&1; then
+    echo "pre-commit: pnpm verify-pack (rustc checks every Exercise's claim)"
+    if ! pnpm --silent verify-pack; then
+      echo
+      echo "pre-commit: blocked. A Pack makes a claim the compiler disagrees with."
+      exit 1
+    fi
+  else
+    echo "pre-commit: WARNING rustc not found, Pack claims were NOT verified."
+  fi
 fi

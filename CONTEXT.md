@@ -14,6 +14,7 @@ A browser-first, offline-capable trainer where programmers build language fluenc
 - **Flavor** — an authoring tag on an Exercise, of either Exercise Type, describing what is being asked (e.g. predict-output, predict-error, pick-refactor, find-the-line). An open set: each Pack declares its own Flavors with Learner-facing labels. Drives labels and stats, not engine behaviour.
 - **Rationale** — the authored text attached to each option explaining why it is right or wrong.
 - **Explanation** — everything shown after answering: the Rationales plus any Exercise-level text.
+- **Claim** — the machine-checkable statement an Exercise makes about its snippet (it prints this; it fails to compile with this error on this line; it compiles). Proven by the language's toolchain when the Pack is authored, never by the app.
 - **Time Budget** — the author-set expected answering time for an Exercise. Soft: overtime is recorded, never fails the Exercise.
 - **Session** — one daily sitting of roughly 10–15 minutes.
 - **Review Queue** — the Exercises currently due for spaced repetition.
