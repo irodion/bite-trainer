@@ -1,6 +1,10 @@
 import { execFileSync } from 'node:child_process'
-import { expect, test } from 'vitest'
+import { expect, test, vi } from 'vitest'
 import { rustcToolchain } from './rustc.ts'
+
+// These tests run the real compiler. The first compile on a cold machine (a fresh CI runner) can take over five
+// seconds, which is Vitest's default limit — observed as a flaky failure in CI.
+vi.setConfig({ testTimeout: 60_000 })
 
 const hasRustc = (() => {
   try {
