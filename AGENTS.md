@@ -23,8 +23,11 @@ strict TypeScript, pnpm); run every command from there.
 ## What the environment will not tell you
 
 - **Done means `pnpm verify` and `pnpm e2e` both exit 0.** The commit gate runs only `verify` (and `verify-pack` when
-  a Pack or the verifier changed). Nothing runs the Playwright suite for you, and it has caught about half of the
-  real bugs. Read exit codes, not a grepped summary line.
+  a Pack or the verifier changed); CI runs all three, but only after you push. The Playwright suite has caught
+  about half of the real bugs, so run it before you call something finished. Read exit codes, not a grepped summary
+  line.
+- **`main` is protected.** Work on a branch and open a pull request; direct pushes are refused, merges are
+  rebase-only, and the `verify`, `verify-pack` and `e2e` checks are required.
 - **The service worker exists only in the production build.** Offline and install behaviour is tested by `pnpm e2e`
   (which builds) or by `pnpm build && pnpm preview`; `pnpm dev` has no service worker.
 - **`pnpm verify-pack` needs `rustc` on the PATH.** It compiles every Exercise's snippet to check its Claim. Without
