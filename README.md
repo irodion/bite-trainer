@@ -1,5 +1,7 @@
 # Bite Trainer
 
+[![CI](https://github.com/irodion/bite-trainer/actions/workflows/ci.yml/badge.svg)](https://github.com/irodion/bite-trainer/actions/workflows/ci.yml)
+
 Build fluency in a programming language by **reading** code for 10–15 minutes a day — no typing.
 
 You are shown a short, real snippet and asked one question about it: _what does it print?_, _why won't it compile?_,
@@ -71,7 +73,9 @@ Only Rust has a toolchain adapter today; another language needs one more
 
 ## Contributing
 
-Read [`docs/CONVENTIONS.md`](docs/CONVENTIONS.md) first. Content fixes — a misleading Rationale, an unfair
+Read [`docs/CONVENTIONS.md`](docs/CONVENTIONS.md) first. `main` is protected: changes arrive by pull request, CI
+(`verify`, `verify-pack`, `e2e`) must pass, and merges are rebased so history stays linear. A pull request from a
+fork waits for a maintainer to approve its CI run. Content fixes — a misleading Rationale, an unfair
 distractor — are as welcome as code: edit the Topic JSON and let `pnpm verify-pack` check that the compiler still
 agrees with you.
 

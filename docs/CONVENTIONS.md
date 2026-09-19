@@ -88,4 +88,5 @@ slept, the day rolling over. Playwright's fake clock and request routing make th
 One logical change per commit, imperative subject, a body that says what was wrong and what is now true. Commit after
 each finished change rather than stacking several uncommitted ones. The gate (`.githooks/pre-commit`) runs
 `pnpm verify`, plus `pnpm verify-pack` when a Pack or the verifier changed; fix the cause rather than bypassing it.
-Run `pnpm e2e` yourself before pushing — no CI does it yet.
+`main` takes changes only by pull request, rebased onto it; CI runs `verify`, `verify-pack` and `e2e` and all three
+must pass. Run `pnpm e2e` yourself before opening the pull request — it is quicker than waiting to be told.
