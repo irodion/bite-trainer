@@ -125,7 +125,7 @@
     </div>
     {#if notice}<p class="muted">{notice}</p>{/if}
     <p class="muted small">
-      {events.length} events · Pack {app.pack.manifest.id} v{app.pack.manifest.version}
+      {events.length} events · Pack {app.pack.manifest.id} v{app.pack.manifest.version} · build {__BUILD_ID__}
       {#if app.packUpdate === 'updated'}
         · update ready, applies on next launch{:else if app.packUpdate === 'offline'}
         · offline{:else if app.packUpdate === 'invalid'}

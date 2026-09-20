@@ -12,7 +12,7 @@ export default ts.config(
   ...svelte.configs.recommended,
   prettier,
   ...svelte.configs.prettier,
-  { languageOptions: { globals: { ...globals.browser, ...globals.node } } },
+  { languageOptions: { globals: { ...globals.browser, ...globals.node, __BUILD_ID__: 'readonly' } } },
   {
     files: ['**/*.svelte', '**/*.svelte.ts'],
     languageOptions: { parserOptions: { parser: ts.parser, extraFileExtensions: ['.svelte'], svelteConfig } },
