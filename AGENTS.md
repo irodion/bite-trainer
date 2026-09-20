@@ -28,6 +28,8 @@ strict TypeScript, pnpm); run every command from there.
   line.
 - **`main` is protected.** Work on a branch and open a pull request; direct pushes are refused, merges are
   rebase-only, and the `verify`, `verify-pack` and `e2e` checks are required.
+- **A merge to `main` is a release.** CI's `deploy` job publishes it to <https://bite-trainer.pages.dev> (Cloudflare
+  Pages) once the three checks pass; there is no staging step in between.
 - **The service worker exists only in the production build.** Offline and install behaviour is tested by `pnpm e2e`
   (which builds) or by `pnpm build && pnpm preview`; `pnpm dev` has no service worker.
 - **`pnpm verify-pack` needs `rustc` on the PATH.** It compiles every Exercise's snippet to check its Claim. Without
