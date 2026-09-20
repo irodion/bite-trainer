@@ -4,6 +4,8 @@
 
 Build fluency in a programming language by **reading** code for 10–15 minutes a day — no typing.
 
+**Try it: <https://bite-trainer.pages.dev>** — open it on your phone and add it to the Home Screen.
+
 You are shown a short, real snippet and asked one question about it: _what does it print?_, _why won't it compile?_,
 _which rewrite is equivalent?_, or _tap the line the compiler rejects_. Every option explains why it is right or wrong.
 What you miss comes back tomorrow; what you know comes back later and later.
@@ -60,22 +62,22 @@ Only Rust has a toolchain adapter today; another language needs one more
 
 ## Where things are
 
-| Path                    | What                                                                                                  |
-| ----------------------- | ----------------------------------------------------------------------------------------------------- |
-| `app/src/core/`         | The engine: framework-free TypeScript — parsing, scheduling, Sessions, the Progress Log. No DOM.      |
-| `app/src/ui/`           | Svelte 5 components. They render what `core/` computes.                                               |
-| `app/tools/verify-pack` | The author-time Pack verifier.                                                                        |
-| `app/public/packs/`     | The official Packs.                                                                                   |
-| `CONTEXT.md`            | The project's vocabulary (Pack, Topic, Exercise, Claim, Session, …). Code and docs use these words.   |
-| `docs/adr/`             | Decisions that are hard to reverse, and why they were made.                                           |
-| `docs/CONVENTIONS.md`   | How code is written here.                                                                             |
-| `docs/design/`          | The approved Exercise screen prototype — the design source for the UI.                                |
+| Path                    | What                                                                                                |
+| ----------------------- | --------------------------------------------------------------------------------------------------- |
+| `app/src/core/`         | The engine: framework-free TypeScript — parsing, scheduling, Sessions, the Progress Log. No DOM.    |
+| `app/src/ui/`           | Svelte 5 components. They render what `core/` computes.                                             |
+| `app/tools/verify-pack` | The author-time Pack verifier.                                                                      |
+| `app/public/packs/`     | The official Packs.                                                                                 |
+| `CONTEXT.md`            | The project's vocabulary (Pack, Topic, Exercise, Claim, Session, …). Code and docs use these words. |
+| `docs/adr/`             | Decisions that are hard to reverse, and why they were made.                                         |
+| `docs/CONVENTIONS.md`   | How code is written here.                                                                           |
+| `docs/design/`          | The approved Exercise screen prototype — the design source for the UI.                              |
 
 ## Contributing
 
 Read [`docs/CONVENTIONS.md`](docs/CONVENTIONS.md) first. `main` is protected: changes arrive by pull request, CI
 (`verify`, `verify-pack`, `e2e`) must pass, and merges are rebased so history stays linear. A pull request from a
-fork waits for a maintainer to approve its CI run. Content fixes — a misleading Rationale, an unfair
+fork waits for a maintainer to approve its CI run. Every merge to `main` that passes CI is deployed to the live site. Content fixes — a misleading Rationale, an unfair
 distractor — are as welcome as code: edit the Topic JSON and let `pnpm verify-pack` check that the compiler still
 agrees with you.
 
