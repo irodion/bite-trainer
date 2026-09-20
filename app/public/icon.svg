@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Full-bleed ground so the platform can mask it; everything that matters sits inside the central 80%. -->
+  <rect width="512" height="512" fill="#2f5fd0" />
+  <!-- A card of code with a bite taken out of its corner. -->
+  <mask id="bite">
+    <rect width="512" height="512" fill="#fff" />
+    <circle cx="392" cy="136" r="44" fill="#000" />
+    <circle cx="340" cy="120" r="30" fill="#000" />
+    <circle cx="404" cy="192" r="30" fill="#000" />
+  </mask>
+  <g mask="url(#bite)">
+    <rect x="112" y="120" width="288" height="272" rx="30" fill="#fbfcfd" />
+    <rect x="146" y="166" width="96" height="22" rx="11" fill="#7a3fb8" />
+    <rect x="254" y="166" width="54" height="22" rx="11" fill="#5c6b7a" />
+    <rect x="112" y="212" width="288" height="50" fill="#dce6fb" />
+    <rect x="176" y="226" width="150" height="22" rx="11" fill="#2f5fd0" />
+    <rect x="176" y="286" width="70" height="22" rx="11" fill="#1e7a4f" />
+    <rect x="258" y="286" width="96" height="22" rx="11" fill="#5c6b7a" />
+    <rect x="146" y="334" width="40" height="22" rx="11" fill="#5c6b7a" />
+  </g>
+</svg>

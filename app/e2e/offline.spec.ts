@@ -39,7 +39,14 @@ test('the app is installable: manifest with name, icons, start_url and standalon
   const href = await page.locator('link[rel="manifest"]').getAttribute('href')
   const manifest = await (await page.request.get(new URL(href!, page.url()).toString())).json()
   expect(manifest).toMatchObject({ name: 'Bite Trainer', display: 'standalone', start_url: './' })
-  expect(manifest.icons.map((i: { sizes: string }) => i.sizes)).toEqual(['192x192', '512x512'])
+  const icons: { src: string; sizes: string; purpose?: string }[] = manifest.icons
+  expect(icons.map((i) => i.sizes)).toEqual(expect.arrayContaining(['192x192', '512x512']))
+  expect(icons.some((i) => i.purpose === 'maskable')).toBe(true)
+  // An icon the manifest names but the server does not have fails silently at install time.
+  for (const icon of icons) {
+    const res = await page.request.get(new URL(icon.src, new URL(href!, page.url())).toString())
+    expect(res.headers()['content-type'], icon.src).toBe('image/png')
+  }
 })
 
 test('options are shuffled: the same Exercise does not present its options in the same order every time', async ({

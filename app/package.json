@@ -14,6 +14,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "verify": "pnpm format:check && pnpm lint && pnpm check && pnpm test",
+    "icons": "node tools/make-icons.mjs",
     "prepare": "git config core.hooksPath .githooks",
     "verify-pack": "node tools/verify-pack/cli.ts"
   },
